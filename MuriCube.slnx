@@ -28,6 +28,7 @@
   <Project Path="R3.Unity.csproj" />
   <Project Path="NuGetForUnity.csproj" />
   <Project Path="Unity.AI.Navigation.Editor.csproj" />
+  <Project Path="Domain.csproj" />
   <Project Path="DOTween.Modules.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="R3.Unity.Editor.csproj" />
