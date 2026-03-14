@@ -1,3 +1,5 @@
+using Domain.Common.Enums;
+
 namespace Domain.Common
 {
     // 単一ブロック。指定した面の色を取得できる
