@@ -17,6 +17,7 @@
   <Project Path="Unity.AI.Navigation.Editor.ConversionSystem.csproj" />
   <Project Path="Unity.VisualScripting.State.Editor.csproj" />
   <Project Path="Unity.Burst.CodeGen.csproj" />
+  <Project Path="Domain.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
   <Project Path="UniTask.Linq.csproj" />
@@ -28,7 +29,6 @@
   <Project Path="R3.Unity.csproj" />
   <Project Path="NuGetForUnity.csproj" />
   <Project Path="Unity.AI.Navigation.Editor.csproj" />
-  <Project Path="Domain.csproj" />
   <Project Path="DOTween.Modules.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="R3.Unity.Editor.csproj" />
@@ -40,8 +40,8 @@
   <Project Path="Unity.InputSystem.TestFramework.csproj" />
   <Project Path="Unity.VisualScripting.Shared.Editor.csproj" />
   <Project Path="R3.Unity.TextMeshPro.csproj" />
-  <Project Path="Domain.Tests.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
+  <Project Path="Domain.Tests.csproj" />
   <Project Path="UniTask.Editor.csproj" />
   <Project Path="R3.Unity.XRInteractionToolkit.csproj" />
   <Project Path="Unity.InputSystem.DocCodeSamples.csproj" />

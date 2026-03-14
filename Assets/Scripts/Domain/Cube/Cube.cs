@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Domain.Common;
 using Domain.Cube.Enums;
@@ -16,100 +17,105 @@ namespace Domain.Cube
 
         public IBlockGroup BlockGroup => _blockGroup;
 
-        // 指定軸で90度回転した新しい Cube を返す（不変操作）。レイヤー内での位置入れ替えと Block.Rotate による自転を行う
-        public Cube Rotate(RotateAxis axis)
+        // 指定軸・方向・Pivot で回転した新しい Cube を返す（不変操作）
+        // pivot: 回転の中心となる空間座標（ブロック中央が整数座標のため、格子点は 0.5 刻み）
+        public Cube Rotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)
         {
             var blocks = _blockGroup.Blocks;
-            if (blocks.Count == 0)
-            {
-                return this;
-            }
-
-            // 現在のブロック群からバウンディングボックスを取得（任意サイズの N×N×N を許容）
-            int minX = int.MaxValue, maxX = int.MinValue;
-            int minY = int.MaxValue, maxY = int.MinValue;
-            int minZ = int.MaxValue, maxZ = int.MinValue;
-
-            foreach (var kv in blocks)
-            {
-                var p = kv.Key;
-                if (p.X < minX) minX = p.X;
-                if (p.X > maxX) maxX = p.X;
-                if (p.Y < minY) minY = p.Y;
-                if (p.Y > maxY) maxY = p.Y;
-                if (p.Z < minZ) minZ = p.Z;
-                if (p.Z > maxZ) maxZ = p.Z;
-            }
+            if (blocks.Count == 0) return this;
 
             var nextBlocks = new Dictionary<BlockPosition, Block>();
             foreach (var kv in blocks)
             {
-                var newPos = RotatePosition(kv.Key, axis, minX, maxX, minY, maxY, minZ, maxZ);
-                var block = (Block)kv.Value;
-                nextBlocks[newPos] = block.Rotate(axis);
+                var newPos       = RotatePosition(kv.Key, axis, turn, pivot);
+                var block        = (Block)kv.Value;
+                var rotatedBlock = RotateBlock(block, axis, turn);
+                nextBlocks[newPos] = rotatedBlock;
             }
-            var newGroup = new BlockGroup(nextBlocks);
-            return new Cube(newGroup);
+
+            return new Cube(new BlockGroup(nextBlocks));
         }
 
-        // 軸に応じた座標変換。軸に直交する平面上で N×N グリッドを 90度時計回りに回転させる
+        // CubeTurn に応じて Block の自転を行う
+        // CounterClockwise = Clockwise × 3、HalfTurn = Clockwise × 2
+        private static Block RotateBlock(Block block, RotateAxis axis, CubeTurn turn)
+        {
+            return turn switch
+            {
+                CubeTurn.Clockwise        => block.Rotate(axis),
+                CubeTurn.CounterClockwise => block.Rotate(axis).Rotate(axis).Rotate(axis),
+                CubeTurn.HalfTurn         => block.Rotate(axis).Rotate(axis),
+                _                         => block,
+            };
+        }
+
+        // 軸・方向・Pivot に基づいて BlockPosition を変換する
+        // 手順:
+        //   1. ブロック座標から Pivot を引いて相対座標を得る（float で計算）
+        //   2. 軸に直交する2軸を CubeTurn に応じて入れ替える
+        //   3. Pivot を足し戻して絶対座標に変換し、四捨五入で BlockPosition に戻す
         private static BlockPosition RotatePosition(
             BlockPosition pos,
             RotateAxis axis,
-            int minX,
-            int maxX,
-            int minY,
-            int maxY,
-            int minZ,
-            int maxZ)
+            CubeTurn turn,
+            PivotPosition pivot)
         {
+            float dx = pos.X - pivot.X;
+            float dy = pos.Y - pivot.Y;
+            float dz = pos.Z - pivot.Z;
+
+            float ndx = dx, ndy = dy, ndz = dz;
+
             switch (axis)
             {
                 case RotateAxis.X:
-                    // X 軸回転: X は不変。Y-Z 平面上で (y, z) を 90度時計回りに回転
-                    {
-                        int sizeY = maxY - minY + 1;
-                        int localY = pos.Y - minY;
-                        int localZ = pos.Z - minZ;
+                    // X 軸 Clockwise (実測済み): 新dy = -dz, 新dz = dy
+                    (ndy, ndz) = Rotate2D(dy, dz, turn);
+                    break;
 
-                        int rotatedLocalY = (sizeY - 1) - localZ;
-                        int rotatedLocalZ = localY;
-
-                        int newY = minY + rotatedLocalY;
-                        int newZ = minZ + rotatedLocalZ;
-                        return new BlockPosition(pos.X, newY, newZ);
-                    }
                 case RotateAxis.Y:
-                    // Y 軸回転: Y は不変。X-Z 平面上で (x, z) を 90度時計回りに回転
-                    {
-                        int sizeX = maxX - minX + 1;
-                        int localX = pos.X - minX;
-                        int localZ = pos.Z - minZ;
+                    // Y 軸 Clockwise (上から見て時計回り): 新dx = dz, 新dz = -dx
+                    (ndx, ndz) = Rotate2D_Y(dx, dz, turn);
+                    break;
 
-                        int rotatedLocalX = (sizeX - 1) - localZ;
-                        int rotatedLocalZ = localX;
-
-                        int newX = minX + rotatedLocalX;
-                        int newZ = minZ + rotatedLocalZ;
-                        return new BlockPosition(newX, pos.Y, newZ);
-                    }
                 case RotateAxis.Z:
-                    // Z 軸回転: Z は不変。X-Y 平面上で (x, y) を 90度時計回りに回転
-                    {
-                        int sizeX = maxX - minX + 1;
-                        int localX = pos.X - minX;
-                        int localY = pos.Y - minY;
-
-                        int rotatedLocalX = (sizeX - 1) - localY;
-                        int rotatedLocalY = localX;
-
-                        int newX = minX + rotatedLocalX;
-                        int newY = minY + rotatedLocalY;
-                        return new BlockPosition(newX, newY, pos.Z);
-                    }
-                default:
-                    return pos;
+                    // Z 軸 Clockwise (手前から見て時計回り): 新dx = -dy, 新dy = dx
+                    (ndx, ndy) = Rotate2D(dx, dy, turn);
+                    break;
             }
+
+            int newX = (int)Math.Round(ndx + pivot.X);
+            int newY = (int)Math.Round(ndy + pivot.Y);
+            int newZ = (int)Math.Round(ndz + pivot.Z);
+
+            return new BlockPosition(newX, newY, newZ);
+        }
+
+        // X軸・Z軸共通の2D回転変換
+        // Clockwise: 新a = -b, 新b = a
+        private static (float na, float nb) Rotate2D(float a, float b, CubeTurn turn)
+        {
+            return turn switch
+            {
+                CubeTurn.Clockwise        => (-b,  a),
+                CubeTurn.CounterClockwise => ( b, -a),
+                CubeTurn.HalfTurn         => (-a, -b),
+                _                         => ( a,  b),
+            };
+        }
+
+        // Y軸専用の2D回転変換（X/Z 平面）
+        // Y軸 Clockwise (上から見て時計回り): 新dx = dz, 新dz = -dx
+        // ※ X軸・Z軸の Clockwise と回転方向が逆になるため専用メソッドで明示する
+        private static (float ndx, float ndz) Rotate2D_Y(float dx, float dz, CubeTurn turn)
+        {
+            return turn switch
+            {
+                CubeTurn.Clockwise        => ( dz, -dx),
+                CubeTurn.CounterClockwise => (-dz,  dx),
+                CubeTurn.HalfTurn         => (-dx, -dz),
+                _                         => ( dx,  dz),
+            };
         }
     }
 }
