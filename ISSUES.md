@@ -15,7 +15,7 @@
     - `Docs/Standards/CodingGuidelines.md` の命名規則を遵守していること。
 
 ## [Task 002] Domain 用 Assembly Definition の作成 [x]
-- **ステータス**: 未着手
+- **ステータス**: 完了 ✅
 - **概要**: `Assets/Scripts/Domain/` に `Domain.asmdef` を作成し、`No Engine References` を有効にする。
 - **目的**: Domain層の独立性と純粋性をシステムレベルで強制し、コンパイル時間を最適化する。
 
