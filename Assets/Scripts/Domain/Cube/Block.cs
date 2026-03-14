@@ -26,7 +26,7 @@ namespace Domain.Cube
             return _faceColors[face];
         }
 
-        // 指定軸で90度回転した新しいブロックを返す（不変操作）。TechSpecs 3.2 のスワップロジックに準拠
+        // 指定軸で90度回転した新しいブロックを返す（不変操作）
         public Block Rotate(RotateAxis axis)
         {
             var next = new Dictionary<BlockFace, BlockColor>(_faceColors);
@@ -34,11 +34,11 @@ namespace Domain.Cube
             switch (axis)
             {
                 case RotateAxis.X:
-                    // Front -> Down, Down -> Back, Back -> Up, Up -> Front (L/R不変)
-                    next[BlockFace.Down] = _faceColors[BlockFace.Front];
-                    next[BlockFace.Back] = _faceColors[BlockFace.Down];
-                    next[BlockFace.Up] = _faceColors[BlockFace.Back];
-                    next[BlockFace.Front] = _faceColors[BlockFace.Up];
+                    // Front -> Up, Up -> Back, Back -> Down, Down -> Front (L/R不変)
+                    next[BlockFace.Up] = _faceColors[BlockFace.Front];
+                    next[BlockFace.Back] = _faceColors[BlockFace.Up];
+                    next[BlockFace.Down] = _faceColors[BlockFace.Back];
+                    next[BlockFace.Front] = _faceColors[BlockFace.Down];
                     break;
                 case RotateAxis.Y:
                     // Front -> Left, Left -> Back, Back -> Right, Right -> Front (U/D不変)

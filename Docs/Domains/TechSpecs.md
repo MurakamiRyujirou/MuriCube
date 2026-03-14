@@ -44,7 +44,7 @@
 ### 3.2 ブロック内配色データのスワップ
 位置の移動と同時に、ブロック自体が持つ6面の配色情報を以下の通り更新する。
 
-- **X軸回転**: Front -> Down, Down -> Back, Back -> Up, Up -> Front (L/R不変)
+- **X軸回転**: Front -> Up, Up -> Back, Back -> Down, Down -> Front (L/R不変)
 - **Y軸回転**: Front -> Left, Left -> Back, Back -> Right, Right -> Front (U/D不変)
 - **Z軸回転**: Up -> Right, Right -> Down, Down -> Left, Left -> Up (F/B不変)
 
