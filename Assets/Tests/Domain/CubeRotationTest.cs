@@ -5,10 +5,10 @@ using NUnit.Framework;
 
 namespace Domain.Tests
 {
-    // Cube の X/Y/Z 軸回転が TechSpecs 3.2 のスワップロジック通りに動作することを検証する
+    // Block の X/Y/Z 軸回転が TechSpecs 3.2 のスワップロジック通りに動作することを検証する
     public class CubeRotationTest
     {
-        private static IReadOnlyDictionary<BlockFace, BlockColor> CreateSixFaceCube()
+        private static IReadOnlyDictionary<BlockFace, BlockColor> CreateSixFaceBlock()
         {
             // 世界標準配色（上:白, 下:黄, 右:赤, 左:橙, 前:緑, 後:青）
             return new Dictionary<BlockFace, BlockColor>
@@ -25,8 +25,8 @@ namespace Domain.Tests
         [Test]
         public void RotateX_FrontColorMovesToDown_AndFourFacesSwapCorrectly()
         {
-            var cube = new Domain.Cube.Cube(CreateSixFaceCube());
-            var rotated = cube.Rotate(RotateAxis.X);
+            var block = new Domain.Cube.Block(CreateSixFaceBlock());
+            var rotated = block.Rotate(RotateAxis.X);
 
             // X軸: Front -> Down, Down -> Back, Back -> Up, Up -> Front (L/R不変)
             Assert.AreEqual(BlockColor.Green, rotated.GetColor(BlockFace.Down), "Front の色が Down へ移動すること");
@@ -40,8 +40,8 @@ namespace Domain.Tests
         [Test]
         public void RotateY_FrontColorMovesToLeft_AndFourFacesSwapCorrectly()
         {
-            var cube = new Domain.Cube.Cube(CreateSixFaceCube());
-            var rotated = cube.Rotate(RotateAxis.Y);
+            var block = new Domain.Cube.Block(CreateSixFaceBlock());
+            var rotated = block.Rotate(RotateAxis.Y);
 
             // Y軸: Front -> Left, Left -> Back, Back -> Right, Right -> Front (U/D不変)
             Assert.AreEqual(BlockColor.Green, rotated.GetColor(BlockFace.Left), "Front の色が Left へ移動すること");
@@ -55,8 +55,8 @@ namespace Domain.Tests
         [Test]
         public void RotateZ_UpColorMovesToRight_AndFourFacesSwapCorrectly()
         {
-            var cube = new Domain.Cube.Cube(CreateSixFaceCube());
-            var rotated = cube.Rotate(RotateAxis.Z);
+            var block = new Domain.Cube.Block(CreateSixFaceBlock());
+            var rotated = block.Rotate(RotateAxis.Z);
 
             // Z軸: Up -> Right, Right -> Down, Down -> Left, Left -> Up (F/B不変)
             Assert.AreEqual(BlockColor.White, rotated.GetColor(BlockFace.Right), "Up の色が Right へ移動すること");
