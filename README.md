@@ -1,2 +1,35 @@
-# MuriCube
-The most difficult falling-block puzzle combined with Speedcube mechanics.
+# MuriCube (ムリキューブ)
+
+**"A falling-block puzzle that is mathematically solvable, yet humanly impossible."**
+
+## 🧩 Overview
+MuriCubeは、スピードキューブの立体操作と、落ち物パズルの戦略性を融合させた実験的なパズルゲームです。
+生成AIを利用して高難易度のパズルゲームを構築します。
+
+## ⚙️ Core Mechanics (仕様定義)
+
+### 1. Operation: Double-Axis Speedcube System
+- **落下オブジェクト**: 奥行き2 (z=0, z=1) のポリオミノ（テトリミノ形状）。
+- **回転軸**: オブジェクトの中心付近に回転軸を設ける。
+- **回転軸の切替**: プレイヤーは回転軸をリアルタイムで変更可能。オブジェクト形状により切替られる回転軸の位置は異なる。
+- **回転挙動**: 軸に沿って回転（90度単位のルービック操作）させることができる。
+- **移動**: オブジェクトを左右に移動させることができる。
+
+### 2. Elimination: Front-Face Color Match
+- **判定対象**: 手前の面（z=0）のみ。
+- **消去条件**: 指定された1ラインが「すべて同じ色」かつ「ブロックで完全に充填」された場合に消去される。
+- **戦略性**: 奥の面（z=1）は落下した瞬間に消える。よって積み上がることはない。
+
+### 3. Coloring: Logical Solvability
+- **配色ルール**: 各ブロックは各面が同じ色で塗り分けられた「完成状態（各面単色）」から、ランダムな回数だけ回転させた形状で初期化される。
+- **整合性**: これにより、どのブロックも論理的には「全面（全ライン）揃えることが可能」であることを保証し、運ゲーではない純粋なパズルとしての難易度を担保する。
+
+## 🤖 AI-Driven Development
+このプロジェクトは、AIとの対話を通じて以下のプロセスで開発を目指す。
+1. **Prompt Design**: Markdownによる厳密な仕様定義。
+2. **Code Generation**: 座標変換や回転計算のAIによる自動生成。
+3. **Open Logs**: 試行錯誤のプロセスを `Docs/` 内にすべて記録。
+
+---
+## 📜 License
+[cite_start]このソフトウェアは [MIT License](LICENSE) の下で公開されています。 [cite: 1, 2, 3]
