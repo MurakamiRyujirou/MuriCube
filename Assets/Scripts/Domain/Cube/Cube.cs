@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Domain.Common;
 using Domain.Common.Enums;
@@ -12,12 +13,17 @@ namespace Domain.Cube
 
         public Cube(IReadOnlyDictionary<BlockFace, BlockColor> faceColors)
         {
+            foreach (BlockFace face in Enum.GetValues(typeof(BlockFace)))
+            {
+                if (faceColors == null || !faceColors.ContainsKey(face))
+                    throw new ArgumentException("6面すべての色が定義されている必要があります。", nameof(faceColors));
+            }
             _faceColors = new Dictionary<BlockFace, BlockColor>(faceColors);
         }
 
         public BlockColor GetColor(BlockFace face)
         {
-            return _faceColors.TryGetValue(face, out var c) ? c : BlockColor.Empty;
+            return _faceColors[face];
         }
 
         // 指定軸で90度回転した新しいキューブを返す（不変操作）。TechSpecs 3.2 のスワップロジックに準拠

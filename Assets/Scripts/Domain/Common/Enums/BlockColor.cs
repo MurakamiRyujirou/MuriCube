@@ -1,9 +1,8 @@
 namespace Domain.Common.Enums
 {
-    // キューブの面の色（6色 + ブロック未配置を示す Empty）
+    // キューブの面の色（6色）
     public enum BlockColor
     {
-        Empty,
         Red,
         Blue,
         White,
