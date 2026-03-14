@@ -1,0 +1,19 @@
+# MuriCube Development Issues
+
+## [Task 001] Domain_Common の型定義
+- **ステータス**: 未着手
+- **優先度**: 最高
+- **概要**: `TechSpecs.md` に基づき、全レイヤーで共通利用する列挙型、バリューオブジェクト、インターフェースを定義する。
+- **実装対象**:
+    - `BlockColor`: キューブの6色 + Empty
+    - `BlockFace`: Up/Down/Left/Right/Front/Back
+    - `BlockPosition`: (x, y, z) の整数座標を扱う構造体
+    - `IBlock`: 単一ブロックの正面の色を公開するインターフェース
+    - `IBlockGroup`: ブロック集合体の抽象
+- **完了条件**: 
+    - `UnityEngine` に依存しない純粋な C# コードであること。
+    - `Docs/Standards/CodingGuidelines.md` の命名規則を遵守していること。
+
+## [Task 002] Domain_Cube の回転ロジック実装
+- **ステータス**: 待機中
+- **概要**: 3D座標の回転および配色スワップの実装。
