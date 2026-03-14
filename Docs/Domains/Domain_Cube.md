@@ -2,6 +2,8 @@
 
 ## 1. 概要
 3D空間における「ブロックの集合体」の移動・回転・配色管理を定義する。
+- **BlockGroup**: Block の集合の管理に徹し、座標と Block の対応を保持する（回転は持たない）。
+- **Cube**: BlockGroup を保持するクラスであり、回転（Rotate）を担当する。
 特定の形状（テトリミノ等）に依存せず、任意の中心座標（Pivot）に基づいた空間回転をサポートする。
 
 ## 2. 基底型（Enums & Value Objects）
@@ -26,16 +28,22 @@
 - **インターフェース実装**: `GetColor(BlockFace face)` により指定面の配色を返す。
 
 ### 3.2 BlockGroup (Entity) : IBlockGroup 実装
-複数の `Block` の集合と、その配置構造を管理する。
+複数の `Block` の集合の管理に徹する。回転（Rotate）は持たない。
 - **データ構造**:
     - `Dictionary<BlockPosition, Block>` : 座標とブロック実体のマッピング。
 - **インターフェースプロパティ**:
     - `IReadOnlyDictionary<BlockPosition, IBlock> Blocks` : 上記マッピングを IBlock として公開。
+- **責務**: Block の集合とその配置構造の保持・公開のみ。回転ロジックは `Cube` が担当する。
+
+### 3.3 Cube (Entity)
+`BlockGroup` を保持し、グループ全体の回転を担う。
+- **データ構造**:
+    - `BlockGroup` : ブロック集合体への参照（または保持）。
 - **回転ロジック**:
-    - `Rotate(CubeAxis axis, CubeTurn turn, PivotPosition pivot)`
-    - **公転**: `pivot` を中心として、配下にある各ブロックの `BlockPosition` を幾何学的に置換する。
-    - **自転**: 各ブロックに対して、同じ `axis` と `turn` に応じた自転を命令する。
-- **不変性**: 回転や移動の操作は、常に新しい `BlockGroup` インスタンスを生成して返す。
+    - `Rotate(CubeAxis axis, CubeTurn turn, PivotPosition pivot)` を実装する。
+    - **公転**: `pivot` を中心として、BlockGroup 内の各ブロックの `BlockPosition` を幾何学的に置換する。
+    - **自転**: 各 `Block` に対して、同じ `axis` と `turn` に応じた自転を命令し、面のスワップを反映する。
+- **不変性**: 回転操作は、常に新しい `BlockGroup`（およびそれを保持する新しい `Cube`）を生成して返す。
 
 ## 4. 回転の数学的定義（汎用）
 
