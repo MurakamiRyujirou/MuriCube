@@ -48,11 +48,11 @@ namespace Domain.Cube
                     next[BlockFace.Front] = _faceColors[BlockFace.Right];
                     break;
                 case RotateAxis.Z:
-                    // Up -> Right, Right -> Down, Down -> Left, Left -> Up (F/B不変)
-                    next[BlockFace.Right] = _faceColors[BlockFace.Up];
-                    next[BlockFace.Down] = _faceColors[BlockFace.Right];
-                    next[BlockFace.Left] = _faceColors[BlockFace.Down];
-                    next[BlockFace.Up] = _faceColors[BlockFace.Left];
+                    // 手前から見て時計回り: Up -> Left, Left -> Down, Down -> Right, Right -> Up (F/B不変)
+                    next[BlockFace.Left] = _faceColors[BlockFace.Up];
+                    next[BlockFace.Down] = _faceColors[BlockFace.Left];
+                    next[BlockFace.Right] = _faceColors[BlockFace.Down];
+                    next[BlockFace.Up] = _faceColors[BlockFace.Right];
                     break;
             }
 

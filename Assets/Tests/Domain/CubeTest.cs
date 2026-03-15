@@ -211,7 +211,7 @@ namespace Domain.Tests
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(1, 0, 0)), "(0,0,0)→(1,0,0)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(1, 1, 0)), "(1,0,0)→(1,1,0)");
-            // 自転Z CW: Up→Right
+            // 自転: Z軸は Cube で turn を反転して 3*Block.Rotate(Z) になるため、結果は Up→Right（公式 F の時計回り）
             Assert.AreEqual(BlockColor.White, rotated[new BlockPosition(1, 1, 0)].GetColor(BlockFace.Right));
             // Front は Z 軸回転で不変
             Assert.AreEqual(BlockColor.Green, rotated[new BlockPosition(1, 1, 0)].GetColor(BlockFace.Front));

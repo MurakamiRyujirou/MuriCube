@@ -18,22 +18,72 @@ namespace Domain.Cube
         public IBlockGroup BlockGroup => _blockGroup;
 
         // 指定軸・方向・Pivot で回転した新しい Cube を返す（不変操作）
-        // pivot: 回転の中心となる空間座標（ブロック中央が整数座標のため、格子点は 0.5 刻み）
+        // 回転対象は「Pivot が含まれるレイヤー」のブロックのみ。対象外は位置・向きとも変更しない（Domain_Cube.md 4.6）
         public Cube Rotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)
         {
             var blocks = _blockGroup.Blocks;
             if (blocks.Count == 0) return this;
 
+            var layerValue = GetRotationLayerIndex(axis, pivot);
             var nextBlocks = new Dictionary<BlockPosition, Block>();
+
             foreach (var kv in blocks)
             {
-                var newPos       = RotatePosition(kv.Key, axis, turn, pivot);
-                var block        = (Block)kv.Value;
-                var rotatedBlock = RotateBlock(block, axis, turn);
-                nextBlocks[newPos] = rotatedBlock;
+                var pos  = kv.Key;
+                var block = (Block)kv.Value;
+
+                if (IsOnRotationLayer(pos, axis, layerValue))
+                {
+                    var newPos = RotatePosition(pos, axis, turn, pivot);
+                    // Z軸は公転と自転の「時計回り」の向きが逆になるため、自転のみ turn を反転する（Domain_Cube 4.1.1 公式準拠）
+                    var blockTurn = axis == RotateAxis.Z ? InvertTurn(turn) : turn;
+                    var rotatedBlock = RotateBlock(block, axis, blockTurn);
+                    nextBlocks[newPos] = rotatedBlock;
+                }
+                else
+                {
+                    nextBlocks[pos] = block;
+                }
             }
 
             return new Cube(new BlockGroup(nextBlocks));
+        }
+
+        // 回転軸と Pivot から、回転対象レイヤーの座標値（整数）を返す
+        private static int GetRotationLayerIndex(RotateAxis axis, PivotPosition pivot)
+        {
+            var coord = axis switch
+            {
+                RotateAxis.X => pivot.X,
+                RotateAxis.Y => pivot.Y,
+                RotateAxis.Z => pivot.Z,
+                _ => 0f
+            };
+            return (int)Math.Round(coord);
+        }
+
+        private static bool IsOnRotationLayer(BlockPosition pos, RotateAxis axis, int layerValue)
+        {
+            var posCoord = axis switch
+            {
+                RotateAxis.X => pos.X,
+                RotateAxis.Y => pos.Y,
+                RotateAxis.Z => pos.Z,
+                _ => -1
+            };
+            return posCoord == layerValue;
+        }
+
+        // Z軸用：公転はそのままだが自転だけ公式の「手前から時計回り」に合わせるため turn を反転する
+        private static CubeTurn InvertTurn(CubeTurn turn)
+        {
+            return turn switch
+            {
+                CubeTurn.Clockwise        => CubeTurn.CounterClockwise,
+                CubeTurn.CounterClockwise => CubeTurn.Clockwise,
+                CubeTurn.HalfTurn         => CubeTurn.HalfTurn,
+                _                         => turn,
+            };
         }
 
         // CubeTurn に応じて Block の自転を行う

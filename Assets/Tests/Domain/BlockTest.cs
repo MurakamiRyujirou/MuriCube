@@ -54,16 +54,16 @@ namespace Domain.Tests
         }
 
         [Test]
-        public void RotateZ_UpColorMovesToRight_AndFourFacesSwapCorrectly()
+        public void RotateZ_UpColorMovesToLeft_AndFourFacesSwapCorrectly()
         {
             var block = new Block(CreateSixFaceBlock());
             var rotated = block.Rotate(RotateAxis.Z);
 
-            // Z軸: Up -> Right, Right -> Down, Down -> Left, Left -> Up (F/B不変)
-            Assert.AreEqual(BlockColor.White, rotated.GetColor(BlockFace.Right), "Up の色が Right へ移動すること");
-            Assert.AreEqual(BlockColor.Red, rotated.GetColor(BlockFace.Down), "Right の色が Down へ移動すること");
-            Assert.AreEqual(BlockColor.Yellow, rotated.GetColor(BlockFace.Left), "Down の色が Left へ移動すること");
-            Assert.AreEqual(BlockColor.Orange, rotated.GetColor(BlockFace.Up), "Left の色が Up へ移動すること");
+            // Z軸（手前から見て時計回り）: Up -> Left, Left -> Down, Down -> Right, Right -> Up (F/B不変)
+            Assert.AreEqual(BlockColor.White, rotated.GetColor(BlockFace.Left), "Up の色が Left へ移動すること");
+            Assert.AreEqual(BlockColor.Orange, rotated.GetColor(BlockFace.Down), "Left の色が Down へ移動すること");
+            Assert.AreEqual(BlockColor.Yellow, rotated.GetColor(BlockFace.Right), "Down の色が Right へ移動すること");
+            Assert.AreEqual(BlockColor.Red, rotated.GetColor(BlockFace.Up), "Right の色が Up へ移動すること");
             Assert.AreEqual(BlockColor.Green, rotated.GetColor(BlockFace.Front), "Front は不変であること");
             Assert.AreEqual(BlockColor.Blue, rotated.GetColor(BlockFace.Back), "Back は不変であること");
         }
