@@ -12,6 +12,8 @@
 | 006 | Domain_Tetris（Field ほか） | ✅ |
 | 007 | Field ユニットテスト | ✅ |
 | 008 | Cube 回転ユニットテスト（CubeTest） | ✅ |
+| 009 | ActiveMino | 未着手 |
+| 010 | ActiveMino ユニットテスト | 未着手 |
 
 ---
 
@@ -79,10 +81,38 @@
 - **概要**: `Assets/Tests/Domain/CubeTest.cs` により `BlockGroup` の公開形状、`Cube.Rotate` の X/Y/Z 公転・自転、4 回転復元、`GetAffectedBlocks` / ピボット挙動を検証。
 - **備考**: Z 軸は `Domain_Cube.md`・実装（公転で `dz` 不変、自転 `InvertTurn`）にテスト期待値を合わせている
 
+## [Task 009] ActiveMino の実装 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: プレイヤーが操作する落下中のミノを表すエンティティ。`Docs/Domains/Domain_Tetris.md` §3.2 に基づく。
+- **実装対象**:
+    - `ActiveMino`: `MinoType`・`IBlockGroup`・`CubePosition`（オフセット）を保持する `sealed class`
+    - `AbsolutePositions()`: 内包する `IBlockGroup.Blocks` の各 `BlockPosition` をオフセットに加算し、フィールド上の絶対座標（`CubePosition`）を列挙して返す
+    - `WithOffset(CubePosition)`: オフセットを差し替えた新しい `ActiveMino` を返す（移動用・不変）
+    - `WithBlockGroup(IBlockGroup)`: `IBlockGroup` を差し替えた新しい `ActiveMino` を返す（回転用・不変）
+    - `IsColliding(Field)`: `AbsolutePositions()` のいずれかが `Field.Contains` の範囲外、または `Field.TryGetBlock` で占有済みであれば `true`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 不変設計（更新時は新インスタンスを返す）であること
+    - `IBlockGroup` の具象（`Cube`）に依存せず、インターフェース経由のみで操作すること
+
+## [Task 010] ActiveMino のユニットテスト [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `ActiveMino` の位置計算・移動・衝突判定を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Domain/ActiveMinoTest.cs`
+- **テストケース**:
+    - `AbsolutePositions_OffsetAdded`: オフセット加算で絶対座標が正しく計算されること
+    - `WithOffset_ReturnsNewInstance`: 不変性の確認
+    - `IsColliding_OutOfBounds_ReturnsTrue`: フィールド範囲外で `true` を返すこと
+    - `IsColliding_OccupiedCell_ReturnsTrue`: 既存ブロックと重なると `true` を返すこと
+    - `IsColliding_FreeCell_ReturnsFalse`: 空きセルでは `false` を返すこと
+- **完了条件**: `ActiveMinoTest` が NUnit でオールグリーンであること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- `ActiveMino`、`MinoType`（`Domain_Tetris.md` 3.2）
+- `MinoType` 列挙の配置・生成ファクトリ（Task 009 と同日程で扱う想定）
 - Application 層ユースケース（ミノ生成・ロック・ライン処理のオーケストレーション）
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
