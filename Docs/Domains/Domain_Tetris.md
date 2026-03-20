@@ -14,6 +14,7 @@
 ### 2.2 MinoType (Enum)
 落下するブロック集合の形状タイプ。
 - I, O, S, Z, J, L, T
+- **実装**: `Domain.Tetris.MinoType`
 
 ## 3. 主要エンティティ
 
@@ -33,6 +34,7 @@
 
 ### 3.2 ActiveMino (Entity)
 プレイヤーが現在操作している、落下中のオブジェクト。
+詳細は `Docs/Domains/Domain_Tetris_ActiveMino.md` を参照。
 - **データ構造**:
     - `MinoType` : 自身の形状タイプ。
     - `IBlockGroup` : 立体としての形状と配色データの抽象。
