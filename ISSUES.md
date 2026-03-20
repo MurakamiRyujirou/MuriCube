@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-20（実装状況に同期）
+最終更新: 2026-03-20（Task 012 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -14,8 +14,8 @@
 | 008 | Cube 回転ユニットテスト（CubeTest） | ✅ |
 | 009 | ActiveMino | ✅ |
 | 010 | ActiveMino ユニットテスト | ✅ |
-| 011 | Application 基盤（GameState / GamePhase / IGamePhaseState / GameStateMachine） | 未着手 |
-| 012 | MinoFactory | 未着手 |
+| 011 | Application 基盤（GameState / GamePhase / IGamePhaseState / GameStateMachine） | ✅ |
+| 012 | MinoFactory | ✅ |
 | 013 | MinoFactory ユニットテスト | 未着手 |
 
 ---
@@ -89,10 +89,12 @@
 - **優先度**: 高
 - **概要**: プレイヤーが操作する落下中のミノを表すエンティティ。`Docs/Domains/Domain_Tetris.md` §3.2 に基づく。
 - **実装対象**:
-    - `ActiveMino`: `MinoType`・`IBlockGroup`・`CubePosition`（オフセット）を保持する `sealed class`
+    - `ActiveMino`: `MinoType`・`IBlockGroup`・`CubePosition`（オフセット）・`PivotPosition`（回転中心）を保持する `sealed class`
+    - `Pivot`: 回転の中心座標を保持する `PivotPosition` プロパティ
     - `AbsolutePositions()`: 内包する `IBlockGroup.Blocks` の各 `BlockPosition` をオフセットに加算し、フィールド上の絶対座標（`CubePosition`）を列挙して返す
     - `WithOffset(CubePosition)`: オフセットを差し替えた新しい `ActiveMino` を返す（移動用・不変）
     - `WithBlockGroup(IBlockGroup)`: `IBlockGroup` を差し替えた新しい `ActiveMino` を返す（回転用・不変）
+    - `WithPivot(PivotPosition)`: `Pivot` だけを差し替えた新しい `ActiveMino` を返す（不変）
     - `IsColliding(Field)`: `AbsolutePositions()` のいずれかが `Field.Contains` の範囲外、または `Field.TryGetBlock` で占有済みであれば `true`
 - **完了条件**:
     - `UnityEngine` に依存しない純粋な C# であること
@@ -112,8 +114,8 @@
     - `IsColliding_FreeCell_ReturnsFalse`: 空きセルでは `false` を返すこと
 - **完了条件**: `ActiveMinoTest` が NUnit でオールグリーンであること
 
-## [Task 011] Application 基盤の実装 [ ]
-- **ステータス**: 未着手
+## [Task 011] Application 基盤の実装 [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: Application 層の基盤となるクラス群を実装する。`Docs/Application/Application_Overview.md`・`Application_GameState.md`・`Application_GamePhaseState.md` に基づく。
 - **実装対象**:
@@ -133,20 +135,22 @@
     - `GameStateMachine` が R3 の `ReactiveProperty<GameState>` を使用していること
     - 各フェーズのスタブが `IGamePhaseState` を正しく実装していること
 
-## [Task 012] MinoFactory の実装 [ ]
-- **ステータス**: 未着手
+## [Task 012] MinoFactory の実装 [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
-- **概要**: `MinoType` から `ActiveMino` を生成するファクトリ。`Docs/Application/Application_MinoFactory.md`（作成予定）に基づく。
+- **概要**: `MinoType` から `ActiveMino` を生成するファクトリ。`Docs/Application/Application_MinoFactory.md` に基づく。
 - **実装対象**:
-    - `MinoFactory`: `MinoType` を受け取り、対応する形状・初期配色の `ActiveMino` を返す `static class`
+    - `MinoFactory`: `MinoType` を受け取り、対応する形状・初期配色・Pivot の `ActiveMino` を返す `static class`
     - 7種（I / O / S / Z / J / L / T）それぞれの `IBlockGroup` 定義（奥行き2層・標準配色）
+    - Pivot は `Application_MinoFactory.md` §5 の定義に従う
     - スポーン位置はファクトリでは持たず、オフセット `(0,0,0)` で生成する。配置は `SpawnMinoUseCase` が担う
 - **配置**: `Assets/Scripts/Application/MinoFactory.cs`
 - **完了条件**:
     - 7種すべてのミノが生成できること
     - 生成された `ActiveMino` の `IBlockGroup` が奥行き2層（z=0・z=1）を持つこと
+    - 生成された `ActiveMino` が正しい `Pivot` を持つこと
     - `UnityEngine` に依存しない純粋な C# であること
-- **備考**: `Application_MinoFactory.md` は Task 012 着手前に作成する
+- **参照仕様**: `Docs/Application/Application_MinoFactory.md`
 
 ## [Task 013] MinoFactory ユニットテスト [ ]
 - **ステータス**: 未着手
