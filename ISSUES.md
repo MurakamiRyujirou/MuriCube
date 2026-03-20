@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-20（Task 012 完了を反映）
+最終更新: 2026-03-20（Task 014 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -16,7 +16,8 @@
 | 010 | ActiveMino ユニットテスト | ✅ |
 | 011 | Application 基盤（GameState / GamePhase / IGamePhaseState / GameStateMachine） | ✅ |
 | 012 | MinoFactory | ✅ |
-| 013 | MinoFactory ユニットテスト | 未着手 |
+| 013 | MinoFactory ユニットテスト | ✅ |
+| 014 | SpawnMinoUseCase | ✅ |
 
 ---
 
@@ -152,16 +153,48 @@
     - `UnityEngine` に依存しない純粋な C# であること
 - **参照仕様**: `Docs/Application/Application_MinoFactory.md`
 
-## [Task 013] MinoFactory ユニットテスト [ ]
-- **ステータス**: 未着手
+## [Task 013] MinoFactory ユニットテスト [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: `MinoFactory` が 7 種すべてのミノを正しく生成することを NUnit で検証する。
-- **実装対象**: `Assets/Tests/Application/MinoFactoryTest.cs`
+- **実装対象**: `Assets/Tests/Application/MinoFactoryTest.cs`、`Assets/Tests/Application/Application.Tests.asmdef`
 - **テストケース**:
-    - `Create_ReturnsCorrectMinoType`: 指定した `MinoType` が `ActiveMino.MinoType` に反映されること
-    - `Create_HasTwoLayers`: 生成された `IBlockGroup` が z=0・z=1 の両方を持つこと
+    - `Create_ReturnsCorrectMinoType`: 7種すべてについて `MinoFactory.Create(type).MinoType == type` であること
+    - `Create_HasTwoLayers`: 7種すべてについて生成された `IBlockGroup.Blocks` のキーに z=0 と z=1 の両方が含まれること
+    - `Create_PivotIsCorrect`: I は `(1.5, 0.5, 0.5)`、O は `(0.5, 0.5, 0.5)`、T/S/Z/J/L は `(1.0, 0.5, 0.5)` であること
+    - `Create_OffsetIsZero`: 7種すべてについてオフセットが `(0, 0, 0)` であること
     - `Create_AllTypes_NoException`: 7種すべてで例外が発生しないこと
 - **完了条件**: `MinoFactoryTest` が NUnit でオールグリーンであること
+
+## [Task 014] SpawnMinoUseCase の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: 新しいミノを生成しフィールド上部中央に配置するユースケース。`Docs/Application/UseCases/UseCase_SpawnMino.md` に基づく。
+- **実装対象**:
+    - `SpawnMinoUseCase`: `Execute(GameState, System.Random) → GameState` の `static class`
+    - `MinoFactory.Create` で生成 → `Cube` に変換 → 20回ランダム回転 → スポーン位置にオフセット設定 → 衝突判定
+    - スポーン位置: X=3, Y=18, Z=0（Tetris Guideline準拠）
+    - ランダム回転: X/Y/Z軸をランダム選択・`CubeTurn.Clockwise` で20回
+    - 衝突あり → `IsGameOver = true` の `GameState` を返す
+    - 衝突なし → `ActiveMino` をセットした `GameState` を返す
+- **配置**: `Assets/Scripts/Application/UseCases/SpawnMinoUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+    - `System.Random` を引数で受け取ること
+- **参照仕様**: `Docs/Application/UseCases/UseCase_SpawnMino.md`
+
+## [Task 015] SpawnMinoUseCase のユニットテスト [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `SpawnMinoUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/SpawnMinoUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_SetsActiveMino`: 空のフィールドでミノが `GameState.ActiveMino` にセットされること
+    - `Execute_ActiveMinoIsWithinField`: スポーン直後の絶対座標がフィールド範囲内であること
+    - `Execute_GameOver_WhenFieldFull`: フィールド上部が埋まっている場合に `IsGameOver = true` になること
+    - `Execute_DoesNotMutateOriginalState`: 元の `GameState` が変更されていないこと（不変性）
+- **完了条件**: `SpawnMinoUseCaseTest` が NUnit でオールグリーンであること
 
 ---
 
