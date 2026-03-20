@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Domain.Common;
@@ -9,23 +10,45 @@ using UnityEngine.InputSystem;
 
 namespace Presentation.Views.Gameplay
 {
-    // CubeUIView の動作確認用デバッグコンポーネント。3x3x3 キューブを表示し、R/U/F で回転する
+    // CubeUIView の動作確認用。1〜7でテトリミノ切替、R/L/U/D/F/B で各面回転
     public sealed class CubeViewTestController : MonoBehaviour
     {
         [SerializeField] private CubeUIView _cubeUIView;
         [SerializeField] private float _rotateDuration = 0.3f;
 
         private Cube _cube;
-        // 3x3x3 の面回転用 Pivot：R=x=2 の面中心, U=y=2 の面中心, F=z=0 の面中心（各 9 ブロックが回る）
-        private static readonly (float X, float Y, float Z) PivotR = (2f, 1f, 1f); // 右面中心 → x=2 の層
-        private static readonly (float X, float Y, float Z) PivotU = (1f, 2f, 1f); // 上面中心 → y=2 の層
-        private static readonly (float X, float Y, float Z) PivotF = (1f, 1f, 0f); // 正面中心 → z=0 の層
+        private int _currentPieceIndex;
+        private (float X, float Y, float Z) _currentPivot;
+
+        // ピース定義: z=0 の (x,y) のみ。z=1 は同じ (x,y) で z=1 を追加して2層構成
+        private readonly struct PieceDef
+        {
+            public readonly string Name;
+            public readonly (float X, float Y)[] Z0Cells;
+            public readonly (float X, float Y, float Z) Pivot;
+
+            public PieceDef(string name, (float, float)[] z0Cells, (float, float, float) pivot)
+            {
+                Name = name;
+                Z0Cells = z0Cells;
+                Pivot = pivot;
+            }
+        }
+
+        private static readonly PieceDef[] Pieces =
+        {
+            new PieceDef("Z型", new[] { (0f, 1f), (1f, 1f), (1f, 0f), (2f, 0f) }, (1.0f, 0.5f, 0.5f)),
+            new PieceDef("S型", new[] { (0f, 0f), (1f, 0f), (1f, 1f), (2f, 1f) }, (1.0f, 0.5f, 0.5f)),
+            new PieceDef("L型", new[] { (0f, 0f), (1f, 0f), (2f, 0f), (2f, 1f) }, (1.0f, 0.5f, 0.5f)),
+            new PieceDef("J型", new[] { (0f, 1f), (0f, 0f), (1f, 0f), (2f, 0f) }, (1.0f, 0.5f, 0.5f)),
+            new PieceDef("T型", new[] { (0f, 0f), (1f, 0f), (2f, 0f), (1f, 1f) }, (1.0f, 0.5f, 0.5f)),
+            new PieceDef("I型", new[] { (0f, 0f), (1f, 0f), (2f, 0f), (3f, 0f) }, (1.5f, 0.5f, 0.5f)),
+            new PieceDef("O型", new[] { (0f, 0f), (1f, 0f), (0f, 1f), (1f, 1f) }, (0.5f, 0.5f, 0.5f)),
+        };
 
         private void Start()
         {
-            _cube = CreateStandard3x3x3Cube();
-            _cubeUIView.Build(_cube.BlockGroup);
-            LogDomainPositions("初期化後");
+            SwitchToPiece(0);
         }
 
         private void Update()
@@ -34,36 +57,71 @@ namespace Presentation.Views.Gameplay
             if (keyboard == null) return;
             if (_cubeUIView.IsRotating) return;
 
-            if (keyboard.rKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.X, CubeTurn.Clockwise).Forget();
+            // 1〜7: テトリミノ切替
+            if (keyboard.digit1Key.wasPressedThisFrame) SwitchToPiece(0);
+            else if (keyboard.digit2Key.wasPressedThisFrame) SwitchToPiece(1);
+            else if (keyboard.digit3Key.wasPressedThisFrame) SwitchToPiece(2);
+            else if (keyboard.digit4Key.wasPressedThisFrame) SwitchToPiece(3);
+            else if (keyboard.digit5Key.wasPressedThisFrame) SwitchToPiece(4);
+            else if (keyboard.digit6Key.wasPressedThisFrame) SwitchToPiece(5);
+            else if (keyboard.digit7Key.wasPressedThisFrame) SwitchToPiece(6);
+            // R/L/U/D/F/B: 回転
+            else if (keyboard.rKey.wasPressedThisFrame)
+                ExecuteRotateAsync(RotateAxis.X, CubeTurn.Clockwise, _currentPivot, "R").Forget();
+            else if (keyboard.lKey.wasPressedThisFrame)
+                ExecuteRotateAsync(RotateAxis.X, CubeTurn.CounterClockwise, _currentPivot, "L").Forget();
             else if (keyboard.uKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Y, CubeTurn.Clockwise).Forget();
+                ExecuteRotateAsync(RotateAxis.Y, CubeTurn.Clockwise, _currentPivot, "U").Forget();
+            else if (keyboard.dKey.wasPressedThisFrame)
+                ExecuteRotateAsync(RotateAxis.Y, CubeTurn.CounterClockwise, _currentPivot, "D").Forget();
             else if (keyboard.fKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Z, CubeTurn.Clockwise).Forget();
+                ExecuteRotateAsync(RotateAxis.Z, CubeTurn.Clockwise, _currentPivot, "F").Forget();
+            else if (keyboard.bKey.wasPressedThisFrame)
+                ExecuteRotateAsync(RotateAxis.Z, CubeTurn.CounterClockwise, _currentPivot, "B").Forget();
         }
 
-        private async UniTaskVoid ExecuteRotateAsync(RotateAxis axis, CubeTurn turn)
+        private void SwitchToPiece(int index)
+        {
+            _currentPieceIndex = Math.Clamp(index, 0, Pieces.Length - 1);
+            var def = Pieces[_currentPieceIndex];
+            _currentPivot = def.Pivot;
+            _cube = CreateCubeFromPiece(def);
+            _cubeUIView.Build(_cube.BlockGroup);
+            _cubeUIView.SetPivotAxisLine(_currentPivot.X, _currentPivot.Y, _currentPivot.Z);
+            Debug.Log($"[CubeViewTest] ピース切替: {def.Name} (キー {_currentPieceIndex + 1})");
+            LogDomainPositions("初期化後");
+        }
+
+        private async UniTaskVoid ExecuteRotateAsync(RotateAxis axis, CubeTurn turn, (float X, float Y, float Z) pivotTuple, string faceLabel)
         {
             if (_cubeUIView.IsRotating) return;
 
-            var (px, py, pz) = axis switch
+            var pivot = new PivotPosition(pivotTuple.X, pivotTuple.Y, pivotTuple.Z);
+            if (!_cube.CanRotate(axis, turn, pivot))
             {
-                RotateAxis.X => PivotR,
-                RotateAxis.Y => PivotU,
-                RotateAxis.Z => PivotF,
-                _ => (1f, 1f, 1f)
-            };
-            var pivot = new PivotPosition(px, py, pz);
-            await _cubeUIView.RotateAsync(axis, turn, pivot, _rotateDuration);
+                Debug.Log($"[CubeViewTest] {faceLabel}: 回転後に座標衝突が発生するため操作を無視");
+                return;
+            }
+            var affected = _cube.GetAffectedBlocks(axis, turn, pivot);
+            await _cubeUIView.RotateAsync(axis, turn, pivot, _rotateDuration, affected);
 
+            // Refresh 前のブロック位置をログ
+            _cubeUIView.LogBlockPositions("Refresh前");
+
+            var positionMap = _cube.GetPositionMap(axis, turn, pivot);
+            foreach (var kv in positionMap)
+                Debug.Log($"[CubeViewTest] positionMap: ({kv.Key.X},{kv.Key.Y},{kv.Key.Z}) -> ({kv.Value.X},{kv.Value.Y},{kv.Value.Z})");
             _cube = _cube.Rotate(axis, turn, pivot);
-            _cubeUIView.Refresh(_cube.BlockGroup);
+            _cubeUIView.Refresh(_cube.BlockGroup, positionMap);
 
-            var axisLabel = axis switch { RotateAxis.X => "R", RotateAxis.Y => "U", RotateAxis.Z => "F", _ => "?" };
-            LogDomainPositions($"{axisLabel}回転後");
+            // Refresh 後のブロック位置をログ
+            _cubeUIView.LogBlockPositions("Refresh後");
+
+            LogDomainPositions($"{faceLabel}回転後");
         }
 
-        private static Cube CreateStandard3x3x3Cube()
+        // ピース定義から z=0 / z=1 の2層で Cube を生成
+        private static Cube CreateCubeFromPiece(PieceDef def)
         {
             var faceColors = new Dictionary<BlockFace, BlockColor>
             {
@@ -74,17 +132,14 @@ namespace Presentation.Views.Gameplay
                 [BlockFace.Left] = BlockColor.Orange,
                 [BlockFace.Right] = BlockColor.Red
             };
-
             var block = new Block(faceColors);
             var blocks = new Dictionary<BlockPosition, Block>();
-
-            for (var x = 0; x < 3; x++)
-            for (var y = 0; y < 3; y++)
-            for (var z = 0; z < 3; z++)
-                blocks[new BlockPosition(x, y, z)] = block;
-
-            var group = new BlockGroup(blocks);
-            return new Cube(group);
+            foreach (var (x, y) in def.Z0Cells)
+            {
+                blocks[new BlockPosition(x, y, 0f)] = block;
+                blocks[new BlockPosition(x, y, 1f)] = block;
+            }
+            return new Cube(new BlockGroup(blocks));
         }
 
         private void LogDomainPositions(string label)

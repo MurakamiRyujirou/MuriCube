@@ -14,7 +14,7 @@
 - Up, Down, Left, Right, Front, Back
 
 ### 2.3 BlockPosition (Value Object)
-- Unity非依存の 3D 整数座標 (int X, int Y, int Z)。
+- Unity非依存の 3D 座標 (float X, float Y, float Z)。回転軸が 0.5 刻みの場合は非整数を許容する。
 
 ## 3. インターフェース
 

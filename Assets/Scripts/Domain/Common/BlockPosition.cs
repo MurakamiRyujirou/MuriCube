@@ -2,14 +2,14 @@ using System;
 
 namespace Domain.Common
 {
-    // グリッド上の整数座標 (x, y, z) を表す値オブジェクト
+    // ブロック中心の座標 (x, y, z)。回転軸が 0.5 刻みの場合は非整数を許容する
     public readonly struct BlockPosition : IEquatable<BlockPosition>
     {
-        public int X { get; }
-        public int Y { get; }
-        public int Z { get; }
+        public float X { get; }
+        public float Y { get; }
+        public float Z { get; }
 
-        public BlockPosition(int x, int y, int z)
+        public BlockPosition(float x, float y, float z)
         {
             X = x;
             Y = y;

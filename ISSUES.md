@@ -7,7 +7,7 @@
 - **実装対象**:
     - `BlockColor`: キューブの6色 + Empty
     - `BlockFace`: Up/Down/Left/Right/Front/Back
-    - `BlockPosition`: (x, y, z) の整数座標を扱う構造体
+    - `BlockPosition`: (x, y, z) の float 座標を扱う構造体（回転後は非整数を許容）
     - `IBlock`: 単一ブロックの正面の色を公開するインターフェース
     - `IBlockGroup`: ブロック集合体の抽象
 - **完了条件**: 
