@@ -86,7 +86,7 @@ namespace Presentation.Views.Gameplay
             var def = Pieces[_currentPieceIndex];
             _currentPivot = def.Pivot;
             _cube = CreateCubeFromPiece(def);
-            _cubeUIView.Build(_cube.BlockGroup);
+            _cubeUIView.Build(_cube);
             _cubeUIView.SetPivotAxisLine(_currentPivot.X, _currentPivot.Y, _currentPivot.Z);
             Debug.Log($"[CubeViewTest] ピース切替: {def.Name} (キー {_currentPieceIndex + 1})");
             LogDomainPositions("初期化後");
@@ -112,7 +112,7 @@ namespace Presentation.Views.Gameplay
             foreach (var kv in positionMap)
                 Debug.Log($"[CubeViewTest] positionMap: ({kv.Key.X},{kv.Key.Y},{kv.Key.Z}) -> ({kv.Value.X},{kv.Value.Y},{kv.Value.Z})");
             _cube = _cube.Rotate(axis, turn, pivot);
-            _cubeUIView.Refresh(_cube.BlockGroup, positionMap);
+            _cubeUIView.Refresh(_cube, positionMap);
 
             // Refresh 後のブロック位置をログ
             _cubeUIView.LogBlockPositions("Refresh後");
@@ -145,7 +145,7 @@ namespace Presentation.Views.Gameplay
         private void LogDomainPositions(string label)
         {
             var positions = new List<string>();
-            foreach (var kv in _cube.BlockGroup.Blocks)
+            foreach (var kv in _cube.Blocks)
             {
                 var p = kv.Key;
                 positions.Add($"({p.X},{p.Y},{p.Z})");

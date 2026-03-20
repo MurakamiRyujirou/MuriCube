@@ -3,21 +3,32 @@ using Domain.Common;
 
 namespace Domain.Cube
 {
-    // Block の集合の管理に徹する。座標と Block の対応を保持し、回転は持たない
+    // Block の集合の管理に徹する。座標とブロックの対応を保持する（回転は持たない）
     public sealed class BlockGroup : IBlockGroup
     {
-        private readonly Dictionary<BlockPosition, Block> _blocks;
-        private readonly IReadOnlyDictionary<BlockPosition, IBlock> _blocksReadOnly;
+        private readonly Dictionary<BlockPosition, IBlock> _blocks;
 
-        public BlockGroup(IReadOnlyDictionary<BlockPosition, Block> blocks)
+        public BlockGroup(IReadOnlyDictionary<BlockPosition, IBlock> blocks)
         {
-            _blocks = blocks != null ? new Dictionary<BlockPosition, Block>(blocks) : new Dictionary<BlockPosition, Block>();
-            var asIBlock = new Dictionary<BlockPosition, IBlock>(_blocks.Count);
-            foreach (var kv in _blocks)
-                asIBlock[kv.Key] = kv.Value;
-            _blocksReadOnly = asIBlock;
+            _blocks = new Dictionary<BlockPosition, IBlock>();
+            if (blocks != null)
+            {
+                foreach (var kv in blocks)
+                    _blocks[kv.Key] = kv.Value;
+            }
         }
 
-        public IReadOnlyDictionary<BlockPosition, IBlock> Blocks => _blocksReadOnly;
+        // Block 辞書からの構築用（Domain_Cube 内の具象ブロックを直接渡す際の便宜）
+        public BlockGroup(IReadOnlyDictionary<BlockPosition, Block> blocks)
+        {
+            _blocks = new Dictionary<BlockPosition, IBlock>();
+            if (blocks != null)
+            {
+                foreach (var kv in blocks)
+                    _blocks[kv.Key] = kv.Value;
+            }
+        }
+
+        public IReadOnlyDictionary<BlockPosition, IBlock> Blocks => _blocks;
     }
 }

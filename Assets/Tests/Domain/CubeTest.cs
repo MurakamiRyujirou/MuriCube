@@ -153,8 +153,8 @@ namespace Domain.Tests
                 .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot)
                 .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot);
 
-            Assert.IsTrue(result.BlockGroup.Blocks.ContainsKey(new BlockPosition(2, 0, 0)), "4回転後に元の座標へ戻ること");
-            Assert.AreEqual(BlockColor.Green, result.BlockGroup.Blocks[new BlockPosition(2, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
+            Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(2, 0, 0)), "4回転後に元の座標へ戻ること");
+            Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(2, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
         }
 
         [Test]
@@ -208,8 +208,8 @@ namespace Domain.Tests
                 .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot)
                 .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot);
 
-            Assert.IsTrue(result.BlockGroup.Blocks.ContainsKey(new BlockPosition(0, 1, 0)), "4回転後に元の座標へ戻ること");
-            Assert.AreEqual(BlockColor.Green, result.BlockGroup.Blocks[new BlockPosition(0, 1, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
+            Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(0, 1, 0)), "4回転後に元の座標へ戻ること");
+            Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(0, 1, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
         }
 
         // -----------------------------------------------------------------------
@@ -252,8 +252,8 @@ namespace Domain.Tests
                 .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot)
                 .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot);
 
-            Assert.IsTrue(result.BlockGroup.Blocks.ContainsKey(new BlockPosition(0, 0, 0)), "4回転後に元の座標へ戻ること");
-            Assert.AreEqual(BlockColor.Green, result.BlockGroup.Blocks[new BlockPosition(0, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
+            Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(0, 0, 0)), "4回転後に元の座標へ戻ること");
+            Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(0, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
         }
 
         // -----------------------------------------------------------------------
@@ -287,7 +287,7 @@ namespace Domain.Tests
         {
             var cube  = MakeCube(blocks);
             var pivot = new Domain.Cube.PivotPosition(px, py, pz);
-            return cube.Rotate(axis, turn, pivot).BlockGroup.Blocks;
+            return cube.Rotate(axis, turn, pivot).Blocks;
         }
 
         private static Domain.Cube.Cube MakeCube(Dictionary<BlockPosition, Domain.Cube.Block> blocks)
