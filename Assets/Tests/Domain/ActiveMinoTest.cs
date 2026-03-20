@@ -10,6 +10,8 @@ namespace Domain.Tests
 {
     public class ActiveMinoTest
     {
+        private static PivotPosition Piv0 => new PivotPosition(0f, 0f, 0f);
+
         private static CubePosition O(int x, int y, int z) => new CubePosition(x, y, z);
 
         private static Block AnyBlock()
@@ -40,7 +42,7 @@ namespace Domain.Tests
             var group = Group(
                 new BlockPosition(0f, 0f, 0f),
                 new BlockPosition(1.5f, 0f, 0f));
-            var mino = new ActiveMino(MinoType.T, group, O(5, 10, 0));
+            var mino = new ActiveMino(MinoType.T, group, O(5, 10, 0), Piv0);
 
             var abs = mino.AbsolutePositions().OrderBy(p => p.X).ToList();
 
@@ -53,7 +55,7 @@ namespace Domain.Tests
         [Test]
         public void WithOffset_ReturnsNewInstance()
         {
-            var mino = new ActiveMino(MinoType.O, Group(new BlockPosition(0f, 0f, 0f)), O(1, 2, 0));
+            var mino = new ActiveMino(MinoType.O, Group(new BlockPosition(0f, 0f, 0f)), O(1, 2, 0), Piv0);
             var moved = mino.WithOffset(O(4, 5, 1));
 
             Assert.AreNotSame(mino, moved);
@@ -61,12 +63,13 @@ namespace Domain.Tests
             Assert.AreEqual(O(4, 5, 1), moved.Offset);
             Assert.AreEqual(mino.MinoType, moved.MinoType);
             Assert.AreSame(mino.BlockGroup, moved.BlockGroup);
+            Assert.AreEqual(mino.Pivot, moved.Pivot);
         }
 
         [Test]
         public void IsColliding_OutOfBounds_ReturnsTrue()
         {
-            var mino = new ActiveMino(MinoType.I, Group(new BlockPosition(0f, 0f, 0f)), O(0, Field.MaxY + 1, 0));
+            var mino = new ActiveMino(MinoType.I, Group(new BlockPosition(0f, 0f, 0f)), O(0, Field.MaxY + 1, 0), Piv0);
             Assert.IsTrue(mino.IsColliding(new Field()));
         }
 
@@ -74,7 +77,7 @@ namespace Domain.Tests
         public void IsColliding_OccupiedCell_ReturnsTrue()
         {
             var field = new Field().WithCell(O(3, 4, 0), new StubBlock(BlockColor.Red));
-            var mino = new ActiveMino(MinoType.J, Group(new BlockPosition(3f, 4f, 0f)), O(0, 0, 0));
+            var mino = new ActiveMino(MinoType.J, Group(new BlockPosition(3f, 4f, 0f)), O(0, 0, 0), Piv0);
             Assert.IsTrue(mino.IsColliding(field));
         }
 
@@ -84,7 +87,8 @@ namespace Domain.Tests
             var mino = new ActiveMino(
                 MinoType.L,
                 Group(new BlockPosition(0f, 0f, 0f), new BlockPosition(1f, 0f, 0f)),
-                O(2, 3, 0));
+                O(2, 3, 0),
+                Piv0);
             Assert.IsFalse(mino.IsColliding(new Field()));
         }
     }

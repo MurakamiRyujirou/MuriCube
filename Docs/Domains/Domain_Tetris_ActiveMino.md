@@ -19,8 +19,9 @@
 | 形状タイプ | `MinoType` | テトリミノの種類（I / O / S / Z / J / L / T） |
 | ブロック集合 | `IBlockGroup` | 相対配置と各色を持つ立体。`Blocks` で `BlockPosition` → `IBlock` |
 | オフセット | `CubePosition` | フィールド上の基準位置（ワールド／ウェル上の絶対グリッド原点に対する並進） |
+| Pivot | `PivotPosition` | 回転の中心座標（ミノの形状に対して定まる初期値）。相対座標で保持する |
 
-公開プロパティ: `MinoType`、`IBlockGroup BlockGroup`、`CubePosition Offset`。
+公開プロパティ: `MinoType`、`IBlockGroup BlockGroup`、`CubePosition Offset`、`PivotPosition Pivot`。
 
 ## 3. 各メソッドの仕様
 
@@ -33,15 +34,20 @@
 ### 3.2 `WithOffset(CubePosition offset)`
 
 - **戻り値**: `ActiveMino`
-- **動作**: `MinoType` と `IBlockGroup` はそのまま、`CubePosition` オフセットだけを差し替えた **新しい** `ActiveMino` を返す（落下・水平移動用の不変更新）。
+- **動作**: `MinoType`・`IBlockGroup`・`Pivot` はそのまま、`CubePosition` オフセットだけを差し替えた **新しい** `ActiveMino` を返す（落下・水平移動用の不変更新）。
 
 ### 3.3 `WithBlockGroup(IBlockGroup blockGroup)`
 
 - **戻り値**: `ActiveMino`
-- **動作**: `MinoType` とオフセットはそのまま、`IBlockGroup` だけを差し替えた **新しい** `ActiveMino` を返す（回転後の形状用の不変更新）。
+- **動作**: `MinoType`・オフセット・`Pivot` はそのまま、`IBlockGroup` だけを差し替えた **新しい** `ActiveMino` を返す（回転後の形状用の不変更新）。
 - **制約**: `blockGroup` が `null` の場合は `ArgumentNullException` とする。
 
-### 3.4 `IsColliding(Field field)`
+### 3.4 `WithPivot(PivotPosition pivot)`
+
+- **戻り値**: `ActiveMino`
+- **動作**: `MinoType`・`IBlockGroup`・オフセットはそのまま、`Pivot` だけを差し替えた **新しい** `ActiveMino` を返す（将来のプレイヤーによるPivot切り替え用の不変更新）。
+
+### 3.5 `IsColliding(Field field)`
 
 - **戻り値**: `bool`（衝突ありで `true`）
 - **動作**: `AbsolutePositions()` で得た各 `CubePosition` について次を順に判定する。
@@ -66,5 +72,6 @@
 
 ## 5. 設計指針
 
-- **不変性**: `WithOffset` / `WithBlockGroup` は常に新インスタンスを返す。ミュータブルな共有状態を持たない。
+- **不変性**: `WithOffset` / `WithBlockGroup` / `WithPivot` は常に新インスタンスを返す。ミュータブルな共有状態を持たない。
+- **Pivot の拡張性**: 現時点では1ミノ1Pivot固定。将来「複数Pivot候補を持ちプレイヤーが切り替える」拡張が必要になった場合は `AvailablePivots` と `CurrentPivot` に分離する形で対応する（`WithPivot` のシグネチャは維持できる）。
 - **具象非依存**: `IBlockGroup` の具象（例: `Domain.Cube.BlockGroup` や `Cube`）へは **参照しない**。コンストラクタ・`WithBlockGroup` の引数および `BlockGroup` プロパティは **`IBlockGroup` のみ**。`UnityEngine` に依存しない純粋な C# とする。
