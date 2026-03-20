@@ -11,6 +11,7 @@
   <Project Path="VContainer.csproj" />
   <Project Path="Unity.VisualStudio.Editor.csproj" />
   <Project Path="Unity.InputSystem.csproj" />
+  <Project Path="Domain.Tests.csproj" />
   <Project Path="UniTask.csproj" />
   <Project Path="Unity.Searcher.Editor.csproj" />
   <Project Path="Unity.VisualScripting.Core.csproj" />
@@ -42,7 +43,6 @@
   <Project Path="R3.Unity.TextMeshPro.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
-  <Project Path="Domain.Tests.csproj" />
   <Project Path="UniTask.Editor.csproj" />
   <Project Path="R3.Unity.XRInteractionToolkit.csproj" />
   <Project Path="Unity.InputSystem.DocCodeSamples.csproj" />

@@ -14,6 +14,9 @@
 | 008 | Cube 回転ユニットテスト（CubeTest） | ✅ |
 | 009 | ActiveMino | ✅ |
 | 010 | ActiveMino ユニットテスト | ✅ |
+| 011 | Application 基盤（GameState / GamePhase / IGamePhaseState / GameStateMachine） | 未着手 |
+| 012 | MinoFactory | 未着手 |
+| 013 | MinoFactory ユニットテスト | 未着手 |
 
 ---
 
@@ -109,10 +112,57 @@
     - `IsColliding_FreeCell_ReturnsFalse`: 空きセルでは `false` を返すこと
 - **完了条件**: `ActiveMinoTest` が NUnit でオールグリーンであること
 
+## [Task 011] Application 基盤の実装 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: Application 層の基盤となるクラス群を実装する。`Docs/Application/Application_Overview.md`・`Application_GameState.md`・`Application_GamePhaseState.md` に基づく。
+- **実装対象**:
+    - `GameState`: ゲームデータを保持する `sealed record`。`Field`・`ActiveMino?`・`Score`・`Level`・`ClearedLineCount`・`IsGameOver` を持つ。`static GameState Initial` を提供する
+    - `GamePhase`: フェーズ識別用列挙型（`Spawning` / `Falling` / `LockDown` / `Clearing` / `GameOver`）
+    - `IGamePhaseState`: `GamePhase Phase` プロパティと `Execute(GameState) → (IGamePhaseState, GameState)` を持つインターフェース
+    - 各フェーズの **スタブ実装**（`SpawningState` / `FallingState` / `LockDownState` / `ClearingState` / `GameOverState`）: 現時点では `Execute` が `(this, gameState)` を返すだけでよい。ロジックは後続タスクで実装する
+    - `GameStateMachine`: `IGamePhaseState` を保持し `OnUpdate()` で遷移を管理する。`ReadOnlyReactiveProperty<GameState> GameStateObservable` を公開し、`Reset()` で初期状態に戻す
+- **配置**:
+    - `Assets/Scripts/Application/GameState.cs`
+    - `Assets/Scripts/Application/PhaseStates/GamePhase.cs`
+    - `Assets/Scripts/Application/PhaseStates/IGamePhaseState.cs`
+    - `Assets/Scripts/Application/PhaseStates/SpawningState.cs` ほか各フェーズ
+    - `Assets/Scripts/Application/GameStateMachine.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - `GameStateMachine` が R3 の `ReactiveProperty<GameState>` を使用していること
+    - 各フェーズのスタブが `IGamePhaseState` を正しく実装していること
+
+## [Task 012] MinoFactory の実装 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `MinoType` から `ActiveMino` を生成するファクトリ。`Docs/Application/Application_MinoFactory.md`（作成予定）に基づく。
+- **実装対象**:
+    - `MinoFactory`: `MinoType` を受け取り、対応する形状・初期配色の `ActiveMino` を返す `static class`
+    - 7種（I / O / S / Z / J / L / T）それぞれの `IBlockGroup` 定義（奥行き2層・標準配色）
+    - スポーン位置はファクトリでは持たず、オフセット `(0,0,0)` で生成する。配置は `SpawnMinoUseCase` が担う
+- **配置**: `Assets/Scripts/Application/MinoFactory.cs`
+- **完了条件**:
+    - 7種すべてのミノが生成できること
+    - 生成された `ActiveMino` の `IBlockGroup` が奥行き2層（z=0・z=1）を持つこと
+    - `UnityEngine` に依存しない純粋な C# であること
+- **備考**: `Application_MinoFactory.md` は Task 012 着手前に作成する
+
+## [Task 013] MinoFactory ユニットテスト [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `MinoFactory` が 7 種すべてのミノを正しく生成することを NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/MinoFactoryTest.cs`
+- **テストケース**:
+    - `Create_ReturnsCorrectMinoType`: 指定した `MinoType` が `ActiveMino.MinoType` に反映されること
+    - `Create_HasTwoLayers`: 生成された `IBlockGroup` が z=0・z=1 の両方を持つこと
+    - `Create_AllTypes_NoException`: 7種すべてで例外が発生しないこと
+- **完了条件**: `MinoFactoryTest` が NUnit でオールグリーンであること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- `MinoType` 列挙の配置・生成ファクトリ（Task 009 と同日程で扱う想定）
-- Application 層ユースケース（ミノ生成・ロック・ライン処理のオーケストレーション）
+- Task 014以降: 各ユースケース実装（SpawnMino / MoveMino / RotateMino / DropMino / LockMino / LineClear）
+- Application 層ユースケースのユニットテスト
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
