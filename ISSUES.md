@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-21（Task 019 完了を反映）
+最終更新: 2026-03-21（Task 023 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -23,6 +23,10 @@
 | 017 | MoveMinoUseCase ユニットテスト | ✅ |
 | 018 | RotateMinoUseCase | ✅ |
 | 019 | RotateMinoUseCase ユニットテスト | ✅ |
+| 020 | DropMinoUseCase の実装 | ✅ |
+| 021 | DropMinoUseCase のユニットテスト | ✅ |
+| 022 | LockMinoUseCase の実装 | ✅ |
+| 023 | LockMinoUseCase のユニットテスト | ✅ |
 
 ---
 
@@ -101,7 +105,7 @@
     - `WithOffset(CubePosition)`: オフセットを差し替えた新しい `ActiveMino` を返す（移動用・不変）
     - `WithBlockGroup(IBlockGroup)`: `IBlockGroup` を差し替えた新しい `ActiveMino` を返す（回転用・不変）
     - `WithPivot(PivotPosition)`: `Pivot` だけを差し替えた新しい `ActiveMino` を返す（不変）
-    - `IsColliding(Field)`: `AbsolutePositions()` のいずれかが `Field.Contains` の範囲外、または `Field.TryGetBlock` で占有済みであれば `true`
+    - `IsColliding(Field)`: **Z が `Field.MinZ` のセルのみ**判定。各対象セルが `Field.Contains` の範囲外、または `Field.TryGetBlock` で占有済みなら `true`（それ以外の Z はスキップ）
 - **完了条件**:
     - `UnityEngine` に依存しない純粋な C# であること
     - 不変設計（更新時は新インスタンスを返す）であること
@@ -258,10 +262,68 @@
     - `Execute_FourRotations_RestoresOriginal`: 同じ軸で4回回転すると元の状態に戻ること
 - **完了条件**: `RotateMinoUseCaseTest` が NUnit でオールグリーンであること
 
+## [Task 020] DropMinoUseCase の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: ソフトドロップ・ハードドロップを処理するユースケース。`Docs/Application/UseCases/UseCase_DropMino.md` に基づく。
+- **実装対象**:
+    - `DropType`: ドロップ種別を表す列挙型（`Soft` / `Hard`）
+    - `DropMinoUseCase`: `Execute(GameState, DropType) → GameState` の `static class`
+    - `Soft`: Y-1 の移動を試みる。失敗した場合は元の `GameState` を返す（接地判定は `LockMinoUseCase` が担う）
+    - `Hard`: 衝突しない限り Y-1 を繰り返し、最下段まで即座に落下させる
+- **配置**:
+    - `Assets/Scripts/Application/UseCases/DropType.cs`
+    - `Assets/Scripts/Application/UseCases/DropMinoUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+- **参照仕様**: `Docs/Application/UseCases/UseCase_DropMino.md`
+
+## [Task 021] DropMinoUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `DropMinoUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/DropMinoUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_Soft_MovesOffsetDown`: ソフトドロップでオフセットY が -1 されること
+    - `Execute_Soft_Blocked_ReturnsOriginal`: 下が埋まっている場合に元の `GameState` を返すこと
+    - `Execute_Hard_LandsAtBottom`: ハードドロップで空のフィールドの最下段まで落下すること
+    - `Execute_Hard_LandsOnBlock`: ハードドロップで既存ブロックの直上に着地すること
+    - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと
+- **完了条件**: `DropMinoUseCaseTest` が NUnit でオールグリーンであること
+
+## [Task 022] LockMinoUseCase の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: 接地したミノをフィールドに固定するユースケース。`Docs/Application/UseCases/UseCase_LockMino.md` に基づく。
+- **実装対象**:
+    - `LockMinoUseCase`: `Execute(GameState) → GameState` の `static class`
+    - `ActiveMino.AbsolutePositions()` の各座標に `ActiveMino.BlockGroup` の対応ブロックを `Field.WithCell` で配置する
+    - z=1 のセルは配置せず破棄する（`GameDesign.md` §2「消滅レイヤー」仕様）
+    - 配置後に `ActiveMino` を `null` にクリアする
+- **配置**: `Assets/Scripts/Application/UseCases/LockMinoUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+    - z=1 のセルが Field に配置されないこと
+- **参照仕様**: `Docs/Application/UseCases/UseCase_LockMino.md`
+
+## [Task 023] LockMinoUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `LockMinoUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/LockMinoUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_PlacesBlocksInField`: T型相当（z=0・z=1 各4セル）をオフセット (3,5,0) でロックし、z=0 の各絶対座標にブロックがあること
+    - `Execute_Z1_NotPlaced`: 同形状で z=1 の絶対座標にブロックが無いこと
+    - `Execute_ClearsActiveMino`: 固定後に `ActiveMino` が `null` になること
+    - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと（`AreSame`）
+- **完了条件**: `LockMinoUseCaseTest` が NUnit でオールグリーンであること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 020以降: 各ユースケース実装（DropMino / LockMino / LineClear）
+- Task 024以降: LineClear ユースケース実装
 - Application 層ユースケースのユニットテスト
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
