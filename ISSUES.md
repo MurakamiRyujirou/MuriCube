@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-21（Task 017 完了を反映）
+最終更新: 2026-03-21（Task 018・019 を追記）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -21,6 +21,8 @@
 | 015 | SpawnMinoUseCase ユニットテスト | ✅ |
 | 016 | MoveMinoUseCase | ✅ |
 | 017 | MoveMinoUseCase ユニットテスト | ✅ |
+| 018 | RotateMinoUseCase | 未着手 |
+| 019 | RotateMinoUseCase ユニットテスト | 未着手 |
 
 ---
 
@@ -229,10 +231,37 @@
     - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと
 - **完了条件**: `MoveMinoUseCaseTest` が NUnit でオールグリーンであること
 
+## [Task 018] RotateMinoUseCase の実装 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: プレイヤー入力によるミノの回転を処理するユースケース。`Docs/Application/UseCases/UseCase_RotateMino.md`（作成予定）に基づく。
+- **実装対象**:
+    - `RotateMinoUseCase`: `Execute(GameState, RotateAxis, CubeTurn) → GameState` の `static class`
+    - `ActiveMino.BlockGroup` を `Cube` に変換し `Cube.Rotate` で回転する
+    - 回転後に `IsColliding` が `true` の場合は元の `GameState` をそのまま返す
+    - `Pivot` は `ActiveMino.Pivot` をそのまま使用する
+- **配置**: `Assets/Scripts/Application/UseCases/RotateMinoUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+- **参照仕様**: `Docs/Application/UseCases/UseCase_RotateMino.md`
+
+## [Task 019] RotateMinoUseCase のユニットテスト [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `RotateMinoUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/RotateMinoUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_Clockwise_ChangesBlockGroup`: 時計回り回転でブロックの配色が変化すること
+    - `Execute_Blocked_ReturnsOriginal`: 回転後に衝突する場合は元の `GameState` を返すこと
+    - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと
+    - `Execute_FourRotations_RestoresOriginal`: 同じ軸で4回回転すると元の状態に戻ること
+- **完了条件**: `RotateMinoUseCaseTest` が NUnit でオールグリーンであること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 018以降: 各ユースケース実装（RotateMino / DropMino / LockMino / LineClear）
+- Task 020以降: 各ユースケース実装（DropMino / LockMino / LineClear）
 - Application 層ユースケースのユニットテスト
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
