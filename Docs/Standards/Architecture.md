@@ -12,13 +12,57 @@
 - **構成**: `Domain_Common`, `Domain_Cube`, `Domain_Tetris`。
 
 ### 2.2 Application Layer
-- **役割**: ゲームの進行管理、ユースケース（ミノの生成、ライン消去、ゲームオーバー判定）の実行。
-- **制約**: ドメイン層を操作するが、表示（View）に関する具体的な実装は持たない。
+- **役割**: ゲームの進行管理、ユースケース（ミノの生成、移動、回転、落下、ライン消去、ゲームオーバー判定）の実行。
+- **状態管理**: `GameState`（不変レコード）にゲームデータを集約し、`GameStateMachine` がフェーズ遷移を管理する。
+- **通知**: `GameStateMachine.GameStateObservable`（R3 `ReadOnlyReactiveProperty<GameState>`）で状態変化を Presentation 層に通知する。
+- **制約**: ドメイン層を操作するが、表示（View）に関する具体的な実装は持たない。`UnityEngine` への参照を禁止する。
 
 ### 2.3 Presentation / Infrastructure Layer (最外層)
 - **役割**: Unityコンポーネントによる表示、入力検知、エフェクト再生。
 - **制約**: ロジックを持たず、Application層からの状態通知を画面に反映させることに専念する。
+- **構成**: 以下の§3で詳述する。
 
-## 3. 通信ルール
+## 3. Presentation層の構成
+
+### 3.1 2カメラ構成
+
+画面は **キューブエリア** と **フィールドエリア** の2つに分かれ、それぞれ独立したカメラで描画する。
+
+| エリア | カメラ | 表示内容 |
+|--------|--------|--------|
+| キューブエリア（上部 約30〜40%） | 斜め視点カメラ（透視投影） | `ActiveMino` を3D表示。落下しない固定表示 |
+| フィールドエリア（下部 約60〜70%） | 正面カメラ（正射影） | 積み上がりブロックと `ActiveMino` のz=0面を平面表示 |
+
+詳細なレイアウト仕様は `Docs/Presentation/UI_Layout.md` を参照。
+
+### 3.2 View の購読構造
+
+両エリアの View は `GameStateMachine.GameStateObservable` を R3 で購読し、`GameState` の変化に応じて独立して再描画する。エリア間に直接の依存関係は持たない。
+
+```
+GameStateMachine.GameStateObservable
+    ├── CubeAreaView（キューブエリア）
+    │       └── ActiveMino の全面配色を3D表示
+    └── FieldAreaView（フィールドエリア）
+            ├── Field（積み上がりブロック）を平面表示
+            └── ActiveMino の z=0面色を平面表示
+```
+
+### 3.3 入力検知
+
+Unity InputSystem を使用し、デバイスごとに独立した Detector クラスを設ける。
+
+| クラス | 対象デバイス | 検知する操作 |
+|--------|--------|--------|
+| `CubeInputDetector` | iPhone タッチ | 楕円スワイプ（R/L/U/D）・角丸四角タップ（F/B） |
+| `KeyboardInputDetector` | キーボード | R/U/F/L/D/B + Shift で逆回転・矢印キー・Space |
+| `GamepadInputDetector` | ゲームパッド | 右ボタン・DPad で回転・左スティックで移動落下 |
+
+各 Detector は検知した操作を Application 層のユースケース（`RotateMinoUseCase` / `MoveMinoUseCase` 等）に橋渡しする。Detector 自身はゲームロジックを持たない。
+
+入力の詳細なキー・ボタン割り当ては `Docs/Presentation/UI_Layout.md` §5 を参照。
+
+## 4. 通信ルール
 - **疎結合の維持**: `Domain_Tetris` は `IBlockGroup` を通じてブロックを操作し、`Domain_Cube` の具体的な回転アルゴリズムには依存しない。
 - **不変性**: 状態の更新は、常に新しいインスタンスを生成して返すこと（副作用の排除）。
+- **単方向依存**: Presentation → Application → Domain の方向のみ依存を許可する。逆方向の参照は禁止する。
