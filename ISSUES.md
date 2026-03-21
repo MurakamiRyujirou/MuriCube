@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-20（Task 015 完了を反映）
+最終更新: 2026-03-21（Task 017 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -18,6 +18,9 @@
 | 012 | MinoFactory | ✅ |
 | 013 | MinoFactory ユニットテスト | ✅ |
 | 014 | SpawnMinoUseCase | ✅ |
+| 015 | SpawnMinoUseCase ユニットテスト | ✅ |
+| 016 | MoveMinoUseCase | ✅ |
+| 017 | MoveMinoUseCase ユニットテスト | ✅ |
 
 ---
 
@@ -196,10 +199,40 @@
     - `Execute_DoesNotMutateOriginalState`: 元の `GameState` が変更されていないこと（不変性）
 - **完了条件**: `SpawnMinoUseCaseTest` が NUnit でオールグリーンであること
 
+## [Task 016] MoveMinoUseCase の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: プレイヤー入力によるミノの左右移動・下方向への1段落下を処理するユースケース。`Docs/Application/UseCases/UseCase_MoveMino.md` に基づく。
+- **実装対象**:
+    - `MoveDirection`: 移動方向を表す列挙型（`Left` / `Right` / `Down`）
+    - `MoveMinoUseCase`: `Execute(GameState, MoveDirection) → GameState` の `static class`
+    - 移動後に `IsColliding` が `true` の場合は元の `GameState` をそのまま返す
+    - `Down` 方向への移動が失敗した場合も元の `GameState` を返す（接地判定は `LockMinoUseCase` が担う）
+- **配置**:
+    - `Assets/Scripts/Application/UseCases/MoveDirection.cs`
+    - `Assets/Scripts/Application/UseCases/MoveMinoUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+- **参照仕様**: `Docs/Application/UseCases/UseCase_MoveMino.md`
+
+## [Task 017] MoveMinoUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `MoveMinoUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/MoveMinoUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_Left_MovesOffset`: 左移動でオフセットX が -1 されること
+    - `Execute_Right_MovesOffset`: 右移動でオフセットX が +1 されること
+    - `Execute_Down_MovesOffset`: 下移動でオフセットY が -1 されること
+    - `Execute_Blocked_ReturnsOriginal`: 移動先が壁の場合に元の `GameState` を返すこと（`AreSame` で参照一致）
+    - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと
+- **完了条件**: `MoveMinoUseCaseTest` が NUnit でオールグリーンであること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 014以降: 各ユースケース実装（SpawnMino / MoveMino / RotateMino / DropMino / LockMino / LineClear）
+- Task 018以降: 各ユースケース実装（RotateMino / DropMino / LockMino / LineClear）
 - Application 層ユースケースのユニットテスト
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
