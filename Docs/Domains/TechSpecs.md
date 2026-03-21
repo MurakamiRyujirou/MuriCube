@@ -48,6 +48,27 @@
 - **Y軸回転**: Front -> Left, Left -> Back, Back -> Right, Right -> Front (U/D不変)
 - **Z軸回転**: Up -> Right, Right -> Down, Down -> Left, Left -> Up (F/B不変)
 
+### 3.3 ルービックキューブ記法との対応
+
+R/U/F/L/D/B の記法は「どの層を動かすか」と「どの方向に回すか」を組み合わせて定義される。
+本プロジェクトでは `RotateAxis`（軸）と `CubeTurn`（方向）の2パラメータで回転を表現するが、
+R と L のように「同じ軸・逆の層」を動かす操作は、**Pivot の位置**と **CubeTurn の向き**の組み合わせで表現する。
+
+| 記法 | 対象層 | RotateAxis | CubeTurn |
+|------|--------|-----------|---------|
+| R    | Pivot より右側（X大）の層 | X | Clockwise |
+| L    | Pivot より左側（X小）の層 | X | CounterClockwise |
+| U    | Pivot より上側（Y大）の層 | Y | Clockwise |
+| D    | Pivot より下側（Y小）の層 | Y | CounterClockwise |
+| F    | Pivot より手前側（Z小）の層 | Z | Clockwise |
+| B    | Pivot より奥側（Z大）の層 | Z | CounterClockwise |
+
+`'`（プライム）は逆回転を表す（例: R' = X軸 CounterClockwise）。
+
+**なぜ L が CounterClockwise か**: X軸時計回り（Clockwise）はPivotより右側（X大）のブロックを動かす定義である。
+左側（X小）のブロックを「左面が時計回りに見える向きで」動かすには、X軸の逆方向（CounterClockwise）として表現することで整合が取れる。
+Y軸・Z軸も同様の原則に従う。
+
 ## 4. 回転軸の動的制御 (Dynamic Pivot)
 
 - **軸の選択**: プレイヤーの入力により、x軸上の隣り合うグリッド境界を回転軸として切り替える。
