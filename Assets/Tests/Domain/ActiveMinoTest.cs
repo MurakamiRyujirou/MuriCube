@@ -91,5 +91,32 @@ namespace Domain.Tests
                 Piv0);
             Assert.IsFalse(mino.IsColliding(new Field()));
         }
+
+        // z=Field.MinZ 以外は衝突判定しない。裏層だけ X 範囲外でも非衝突
+        [Test]
+        public void IsColliding_SkipsNonMinZ_EvenIfBackLayerOutOfBounds()
+        {
+            var mino = new ActiveMino(
+                MinoType.O,
+                Group(new BlockPosition(0f, 0f, 1f)),
+                O(Field.MaxX + 5, 10, 0),
+                Piv0);
+            Assert.IsFalse(mino.IsColliding(new Field()));
+        }
+
+        // z=0 のセルが占有されていれば、同じ平面の衝突は検出する（z=1 は見ない）
+        [Test]
+        public void IsColliding_MinZLayerOccupied_ReturnsTrue_IgnoresZ1InField()
+        {
+            var field = new Field()
+                .WithCell(O(3, 4, 0), new StubBlock(BlockColor.Blue))
+                .WithCell(O(3, 4, 1), new StubBlock(BlockColor.Green));
+            var mino = new ActiveMino(
+                MinoType.J,
+                Group(new BlockPosition(3f, 4f, 0f), new BlockPosition(3f, 4f, 1f)),
+                O(0, 0, 0),
+                Piv0);
+            Assert.IsTrue(mino.IsColliding(field));
+        }
     }
 }

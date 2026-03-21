@@ -51,7 +51,7 @@ namespace Domain.Tetris
             return new ActiveMino(_minoType, _blockGroup, _offset, pivot);
         }
 
-        // いずれかの絶対セルがウェル外、または Field 上で既に占有されていれば true
+        // Z=Field.MinZ（プレイ平面）上の絶対セルのみ判定。それ以外の Z はテトリス衝突の対象外
         public bool IsColliding(Field field)
         {
             if (field == null)
@@ -59,6 +59,8 @@ namespace Domain.Tetris
 
             foreach (var p in AbsolutePositions())
             {
+                if (p.Z != Field.MinZ)
+                    continue;
                 if (!Field.Contains(p))
                     return true;
                 if (field.TryGetBlock(p, out _))

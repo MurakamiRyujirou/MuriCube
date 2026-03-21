@@ -21,6 +21,7 @@
   <Project Path="Domain.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
+  <Project Path="Application.csproj" />
   <Project Path="UniTask.Linq.csproj" />
   <Project Path="Unity.Burst.Editor.csproj" />
   <Project Path="VContainer.Editor.csproj" />
@@ -41,7 +42,6 @@
   <Project Path="Unity.InputSystem.TestFramework.csproj" />
   <Project Path="Unity.VisualScripting.Shared.Editor.csproj" />
   <Project Path="R3.Unity.TextMeshPro.csproj" />
-  <Project Path="Application.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
   <Project Path="Application.Tests.csproj" />
