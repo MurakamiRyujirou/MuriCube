@@ -24,14 +24,12 @@ public interface IGamePhaseState
     GamePhase Phase { get; }
 
     // 1 ティック分の処理を実行する。
+    // deltaTime: 前フレームからの経過時間（秒）。タイマー管理に使用する。
     // 戻り値: (次のフェーズState, 更新後のGameState)
     // フェーズ遷移しない場合は this を返す。
-    (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState);
+    (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState, float deltaTime);
 }
 ```
-
-**備考**: タイマー（自然落下・LockDown 猶予）が必要になる段階で、
-引数に `float deltaTime` を追加することを検討する。現時点では保留。
 
 ### GamePhase（識別用列挙型）
 
@@ -56,21 +54,32 @@ public enum GamePhase
 - `MinoFactory` で新しい `ActiveMino` を生成し、`GameState.ActiveMino` にセットする。
 - 生成直後に `ActiveMino.IsColliding(field)` が `true` なら `IsGameOver = true` にして `GameOverState` へ遷移。
 - 正常生成なら即座に `FallingState` へ遷移する。
+- `deltaTime` は使用しない（即時遷移のため）。
+- `System.Random` をコンストラクタで受け取り、`SpawnMinoUseCase.Execute` に渡す。
 
 ### FallingState
-- プレイヤー入力（移動・回転・ソフトドロップ）を受け付け、対応するユースケースを呼ぶ。
-- 自然落下タイマーを管理し、1 段落下を試みる。落下不可（接地）なら `LockDownState` へ遷移。
-- ハードドロップ入力で即着地し、`LockDownState` へ遷移。
+- 自然落下タイマーを管理し、落下間隔に達したら `DropMinoUseCase.Execute(gameState, DropType.Soft)` を呼ぶ。
+- 落下後に `GameState` が変化しなかった（接地）場合は `LockDownState` へ遷移。
+- 落下後に変化があった場合は `(this, newGameState)` を返す。
+- 落下間隔は `Level` に応じて変化する。
+
+| Level | 落下間隔 |
+|-------|---------|
+| 0 | 1.0秒 |
+| 1 | 0.9秒 |
+| 2 | 0.8秒 |
+| … | … |
+| 9以上 | 0.1秒（最小値） |
 
 ### LockDownState
-- 猶予時間（デフォルト 0.5 秒）を計測する。
+- 猶予時間（0.5秒）を計測する。
+- 猶予時間が切れたら `LockMinoUseCase.Execute` → `LineClearUseCase.Execute` を順に呼び `SpawningState` へ遷移。
 - 猶予時間内に移動・回転があった場合はタイマーをリセットし `FallingState` へ戻る。
-- 猶予時間が切れたら `LockMinoUseCase` を実行して `ClearingState` へ遷移。
+- `System.Random` を外部から受け取る（`SpawningState` に引き継ぐため）。
 
 ### ClearingState
-- `LineClearUseCase` を実行し、消去ライン数に応じてスコア・レベルを更新する。
-- 消去処理完了後、`SpawningState` へ遷移する。
-- 消去対象ラインがゼロの場合も `SpawningState` へ遷移する（スキップ不可）。
+- `System.Random` をコンストラクタで受け取り、即座に `new SpawningState(random)` へ遷移する。
+- 将来アニメーション待機が必要になった場合に `deltaTime` タイマーを追加する。
 
 ### GameOverState
 - 終端状態。`Execute` は何もせず `(this, gameState)` を返す。
@@ -89,7 +98,7 @@ public enum GamePhase
 ### 責務
 
 - `IGamePhaseState` の現在インスタンスを保持する。
-- `OnUpdate()` を呼ばれたら現在フェーズの `Execute` を呼び、次の State と `GameState` を受け取って更新する。
+- `OnUpdate(float deltaTime)` を呼ばれたら現在フェーズの `Execute` を呼び、次の State と `GameState` を受け取って更新する。
 - `ReactiveProperty<GameState>` を公開し、`GameState` の変化を Presentation 層に通知する。
 
 ### 公開API
@@ -104,7 +113,7 @@ public sealed class GameStateMachine
     public GamePhase CurrentPhase => _currentState.Phase;
 
     // 1ティック分の更新。Presentation 層の Update / FixedUpdate から呼ぶ。
-    public void OnUpdate();
+    public void OnUpdate(float deltaTime);
 
     // ゲームを初期状態にリセットする。
     public void Reset();
@@ -113,22 +122,17 @@ public sealed class GameStateMachine
 
 ### Presentation 層との連携
 
-将来の `GameController`（MonoBehaviour）は以下のような薄い層になる。
-
 ```
-GameController.Update()
-    └── GameStateMachine.OnUpdate()
-            └── IGamePhaseState.Execute(gameState)
+GameController.Update(Time.deltaTime)
+    └── GameStateMachine.OnUpdate(deltaTime)
+            └── IGamePhaseState.Execute(gameState, deltaTime)
                     └── 次のState + 新GameState を返す
                             └── ReactiveProperty が購読者（View）に通知
 ```
 
-`GameController` は入力を受け取って `OnUpdate()` を呼ぶだけに専念し、
-ゲームロジックは `GameStateMachine` と各 `IGamePhaseState` が担う。
-
 ## 5. 設計指針
 
-- **フェーズはロジックのみ**: データは `GameState` に置き、フェーズクラスはフィールドを持たない（タイマーを除く）。
-- **タイマーの扱い**: `LockDownState` と `FallingState` のタイマーはフェーズクラス内のフィールドとして保持してよい。タイマーが必要になった段階で `Execute` の引数に `float deltaTime` を追加することを検討する。
-- **UnityEngine 非依存の維持**: `IGamePhaseState` および `GameStateMachine` は `UnityEngine` を参照しない。`deltaTime` が必要な場合は引数で受け取る形にし、依存を外部に押し出す。
-- **拡張性**: 将来フェーズを追加する場合は `IGamePhaseState` を実装した新クラスを追加するだけでよい。既存クラスの変更は不要。
+- **フェーズはロジックのみ**: データは `GameState` に置き、フェーズクラスはタイマー以外のフィールドを持たない。
+- **タイマーの扱い**: `FallingState` と `LockDownState` のタイマーはフェーズクラス内のフィールドとして保持する。`Execute` の引数 `deltaTime` で更新する。
+- **UnityEngine 非依存の維持**: `IGamePhaseState` および `GameStateMachine` は `UnityEngine` を参照しない。`deltaTime` は引数で受け取る形にし、依存を外部に押し出す。
+- **拡張性**: 将来フェーズを追加する場合は `IGamePhaseState` を実装した新クラスを追加するだけでよい。

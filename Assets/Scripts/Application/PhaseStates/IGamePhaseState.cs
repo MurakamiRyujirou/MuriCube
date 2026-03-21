@@ -6,6 +6,6 @@ namespace Application.PhaseStates
     {
         GamePhase Phase { get; }
 
-        (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState);
+        (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState, float deltaTime);
     }
 }

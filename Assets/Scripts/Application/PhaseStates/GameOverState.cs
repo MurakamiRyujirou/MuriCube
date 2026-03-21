@@ -7,7 +7,7 @@ namespace Application.PhaseStates
     {
         public GamePhase Phase => GamePhase.GameOver;
 
-        public (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState)
+        public (IGamePhaseState nextState, GameState nextGameState) Execute(GameState gameState, float deltaTime)
         {
             return (this, gameState);
         }

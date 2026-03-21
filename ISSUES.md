@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-21（Task 023 完了を反映）
+最終更新: 2026-03-21（Task 029 ClearingState 実装完了）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -27,6 +27,12 @@
 | 021 | DropMinoUseCase のユニットテスト | ✅ |
 | 022 | LockMinoUseCase の実装 | ✅ |
 | 023 | LockMinoUseCase のユニットテスト | ✅ |
+| 024 | LineClearUseCase の実装 | ✅ |
+| 025 | LineClearUseCase のユニットテスト | ✅ |
+| 026 | SpawningState の実装 | ✅ |
+| 027 | FallingState の実装 | ✅ |
+| 028 | LockDownState の実装 | ✅ |
+| 029 | ClearingState の実装 | ✅ |
 
 ---
 
@@ -320,10 +326,96 @@
     - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと（`AreSame`）
 - **完了条件**: `LockMinoUseCaseTest` が NUnit でオールグリーンであること
 
+## [Task 024] LineClearUseCase の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: ライン消去・スコア更新・レベルアップを処理するユースケース。`Docs/Application/UseCases/UseCase_LineClear.md` に基づく。
+- **実装対象**:
+    - `LineClearUseCase`: `Execute(GameState) → GameState` の `static class`
+    - `Field.ClearCompletedLines()` でライン消去を実行する
+    - 消去ライン数を算出し `GameDesign.md` §5.2 のスコア計算式でスコアを加算する
+    - `ClearedLineCount` を更新し、`10 × (Level + 1)` に達したら `Level` を +1 する
+    - 消去ライン数が0の場合は `Field` 以外を変更せず返す
+- **配置**: `Assets/Scripts/Application/UseCases/LineClearUseCase.cs`
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - 純粋関数（引数の `GameState` を変更しない）であること
+- **参照仕様**: `Docs/Application/UseCases/UseCase_LineClear.md`
+
+## [Task 025] LineClearUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `LineClearUseCase` の動作を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Application/LineClearUseCaseTest.cs`
+- **テストケース**:
+    - `Execute_ClearsLine_UpdatesField`: z=0 の1行を同色で埋め、実行後にその行が消えていること
+    - `Execute_ScoreAdded_OneLine`: 1ラインで `40 × (Level + 1)` が加算されること（Level=0 なら +40）
+    - `Execute_ScoreAdded_TwoLines`: 2ライン同時で `100 × (Level + 1)` が加算されること
+    - `Execute_LevelUp`: Level=0・`ClearedLineCount=9` から1ライン消去で Level が 1 になること
+    - `Execute_NoLine_ReturnsUnchanged`: 消去対象なしで Score・Level・`ClearedLineCount` が変化しないこと
+- **完了条件**: `LineClearUseCaseTest` が NUnit でオールグリーンであること
+
+## [Task 026] SpawningState の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: ミノを生成して `FallingState` へ遷移するフェーズ。`Docs/Application/Application_GamePhaseState.md` §3 に基づく。
+- **実装対象**:
+    - `SpawningState.Execute`: `SpawnMinoUseCase.Execute` を呼び出し、`IsGameOver` なら `(new GameOverState(), newGameState)` を返す。正常生成なら `(new FallingState(_random), newGameState)` を返す
+    - `System.Random` は `SpawningState` のコンストラクタで受け取り `readonly` 保持する
+- **配置**: `Assets/Scripts/Application/PhaseStates/SpawningState.cs`
+- **完了条件**:
+    - スポーン成功時に `FallingState` へ遷移すること
+    - ゲームオーバー時に `GameOverState` へ遷移すること
+    - `UnityEngine` に依存しない純粋な C# であること
+- **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
+
+## [Task 027] FallingState の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: 自然落下タイマーを管理し、接地で `LockDownState` へ遷移するフェーズ。`Docs/Application/Application_GamePhaseState.md` §3 に基づく。
+- **実装対象**:
+    - `_timer` を `deltaTime` で進め、間隔 `GetFallInterval(Level)`（`Math.Max(0.1f, 1.0f - level * 0.1f)`）未満なら `(this, gameState)`
+    - 間隔到達で `_timer -= interval` のあと `DropMinoUseCase.Execute(gameState, DropType.Soft)`
+    - 戻り値が `ReferenceEquals` で元と同一なら `(new LockDownState(_random), gameState)`、そうでなければ `(this, newGameState)`
+- **配置**: `Assets/Scripts/Application/PhaseStates/FallingState.cs`
+- **完了条件**:
+    - タイマーが落下間隔に達したら1段落下すること
+    - 接地時に `LockDownState` へ遷移すること
+    - `UnityEngine` に依存しない純粋な C# であること
+- **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
+
+## [Task 028] LockDownState の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: 接地後の猶予時間を管理し、`LockMinoUseCase` → `LineClearUseCase` → `SpawningState` へ遷移するフェーズ。
+- **実装対象**:
+    - `_timer` と `LockDelay = 0.5f`。`_timer < LockDelay` の間は `(this, gameState)`
+    - 猶予経過後: `LockMinoUseCase.Execute` → `LineClearUseCase.Execute` の順で実行し `(new SpawningState(_random), clearedState)` を返す
+    - `System.Random` はコンストラクタで受け取り `SpawningState` に引き継ぐ
+    - 猶予中の移動・回転でタイマーリセット→`FallingState` へ戻す処理は未実装（将来拡張・コード内コメント）
+- **配置**: `Assets/Scripts/Application/PhaseStates/LockDownState.cs`
+- **完了条件**:
+    - 猶予時間後に `LockMino` → `LineClear` → `Spawning` の順で処理されること
+    - `UnityEngine` に依存しない純粋な C# であること
+- **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
+
+## [Task 029] ClearingState の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 中
+- **概要**: ライン消去アニメーション用の待機フェーズ。現時点では即座に `SpawningState` へ遷移する。
+- **実装対象**:
+    - `System.Random` をコンストラクタで受け取り `readonly` 保持
+    - `Execute`: 即座に `(new SpawningState(_random), gameState)` を返す（`deltaTime` は将来のアニメ待機用）
+- **配置**: `Assets/Scripts/Application/PhaseStates/ClearingState.cs`
+- **完了条件**:
+    - 即座に `SpawningState` へ遷移すること
+    - `UnityEngine` に依存しない純粋な C# であること
+- **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 024以降: LineClear ユースケース実装
-- Application 層ユースケースのユニットテスト
+- Task 030以降: Presentation層の実装（View・InputDetector）
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
+- ドキュメントパスの整理（Docs/Domains/ と Docs/ の混在）

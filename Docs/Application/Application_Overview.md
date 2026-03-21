@@ -73,8 +73,8 @@ Docs/Application/
 
 ```
 Presentation層（将来の GameController）
-    └── GameStateMachine.OnUpdate()
-            └── IGamePhaseState.Execute(gameState)
+    └── GameStateMachine.OnUpdate(deltaTime)
+            └── IGamePhaseState.Execute(gameState, deltaTime)
                     └── (nextState, nextGameState) を返す
                             └── ReactiveProperty が View に通知
 ```

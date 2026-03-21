@@ -1,3 +1,4 @@
+using System;
 using Application.PhaseStates;
 using R3;
 
@@ -10,7 +11,7 @@ namespace Application
         private IGamePhaseState _currentState;
 
         public GameStateMachine()
-            : this(new SpawningState())
+            : this(new SpawningState(new Random()))
         {
         }
 
@@ -25,16 +26,16 @@ namespace Application
 
         public GamePhase CurrentPhase => _currentState.Phase;
 
-        public void OnUpdate()
+        public void OnUpdate(float deltaTime)
         {
-            var (nextState, nextGameState) = _currentState.Execute(_gameState.CurrentValue);
+            var (nextState, nextGameState) = _currentState.Execute(_gameState.CurrentValue, deltaTime);
             _currentState = nextState;
             _gameState.Value = nextGameState;
         }
 
         public void Reset()
         {
-            _currentState = new SpawningState();
+            _currentState = new SpawningState(new Random());
             _gameState.Value = GameState.Initial;
         }
     }
