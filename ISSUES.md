@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-20（Task 014 完了を反映）
+最終更新: 2026-03-20（Task 015 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -173,7 +173,7 @@
 - **実装対象**:
     - `SpawnMinoUseCase`: `Execute(GameState, System.Random) → GameState` の `static class`
     - `MinoFactory.Create` で生成 → `Cube` に変換 → 20回ランダム回転 → スポーン位置にオフセット設定 → 衝突判定
-    - スポーン位置: X=3, Y=18, Z=0（Tetris Guideline準拠）
+    - スポーン位置: 回転後の `AbsolutePositions` の最小 X/Y/Z を基準に Guideline 目標（X=3, Y=18, Z=0）へ寄せ、ウェル内に収まるよう Clamp（`UseCase_SpawnMino.md` §5）
     - ランダム回転: X/Y/Z軸をランダム選択・`CubeTurn.Clockwise` で20回
     - 衝突あり → `IsGameOver = true` の `GameState` を返す
     - 衝突なし → `ActiveMino` をセットした `GameState` を返す
@@ -184,8 +184,8 @@
     - `System.Random` を引数で受け取ること
 - **参照仕様**: `Docs/Application/UseCases/UseCase_SpawnMino.md`
 
-## [Task 015] SpawnMinoUseCase のユニットテスト [ ]
-- **ステータス**: 未着手
+## [Task 015] SpawnMinoUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: `SpawnMinoUseCase` の動作を NUnit で検証する。
 - **実装対象**: `Assets/Tests/Application/SpawnMinoUseCaseTest.cs`
