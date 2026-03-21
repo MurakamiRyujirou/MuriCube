@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-21（Task 018・019 を追記）
+最終更新: 2026-03-21（Task 019 完了を反映）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -21,8 +21,8 @@
 | 015 | SpawnMinoUseCase ユニットテスト | ✅ |
 | 016 | MoveMinoUseCase | ✅ |
 | 017 | MoveMinoUseCase ユニットテスト | ✅ |
-| 018 | RotateMinoUseCase | 未着手 |
-| 019 | RotateMinoUseCase ユニットテスト | 未着手 |
+| 018 | RotateMinoUseCase | ✅ |
+| 019 | RotateMinoUseCase ユニットテスト | ✅ |
 
 ---
 
@@ -231,10 +231,10 @@
     - `Execute_NoActiveMino_ReturnsOriginal`: `ActiveMino` が `null` の場合に元の `GameState` を返すこと
 - **完了条件**: `MoveMinoUseCaseTest` が NUnit でオールグリーンであること
 
-## [Task 018] RotateMinoUseCase の実装 [ ]
-- **ステータス**: 未着手
+## [Task 018] RotateMinoUseCase の実装 [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
-- **概要**: プレイヤー入力によるミノの回転を処理するユースケース。`Docs/Application/UseCases/UseCase_RotateMino.md`（作成予定）に基づく。
+- **概要**: プレイヤー入力によるミノの回転を処理するユースケース。`Docs/Application/UseCases/UseCase_RotateMino.md` に基づく。
 - **実装対象**:
     - `RotateMinoUseCase`: `Execute(GameState, RotateAxis, CubeTurn) → GameState` の `static class`
     - `ActiveMino.BlockGroup` を `Cube` に変換し `Cube.Rotate` で回転する
@@ -246,8 +246,8 @@
     - 純粋関数（引数の `GameState` を変更しない）であること
 - **参照仕様**: `Docs/Application/UseCases/UseCase_RotateMino.md`
 
-## [Task 019] RotateMinoUseCase のユニットテスト [ ]
-- **ステータス**: 未着手
+## [Task 019] RotateMinoUseCase のユニットテスト [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: `RotateMinoUseCase` の動作を NUnit で検証する。
 - **実装対象**: `Assets/Tests/Application/RotateMinoUseCaseTest.cs`
