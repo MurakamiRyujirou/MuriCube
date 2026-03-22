@@ -38,7 +38,7 @@ namespace Application.Tests
         {
             var pivI = new PivotPosition(1.5f, 0.5f, 0.5f);
             var pivO = new PivotPosition(0.5f, 0.5f, 0.5f);
-            var pivStd = new PivotPosition(1.0f, 0.5f, 0.5f);
+            var pivStd = new PivotPosition(1.5f, 0.5f, 0.5f);
 
             AssertPivot(MinoType.I, pivI);
             AssertPivot(MinoType.O, pivO);

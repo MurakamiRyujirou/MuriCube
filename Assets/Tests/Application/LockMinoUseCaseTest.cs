@@ -92,7 +92,7 @@ namespace Application.Tests
                 MinoType.T,
                 group,
                 Offset,
-                new PivotPosition(1f, 0.5f, 0.5f));
+                new PivotPosition(1.5f, 0.5f, 0.5f));
 
             return new GameState(
                 Field: new Field(),
