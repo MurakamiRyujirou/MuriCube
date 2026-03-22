@@ -91,10 +91,19 @@ namespace Presentation.Views.Gameplay
             lr.positionCount = 2;
             lr.startWidth = 0.03f;
             lr.endWidth = 0.03f;
-            lr.startColor = Color.red;
-            lr.endColor = Color.red;
             if (material != null)
-                lr.material = material;
+            {
+                lr.sharedMaterial = material;
+                // 頂点色が白のときマテリアル（_BaseColor 等）がそのまま見える
+                lr.startColor = Color.white;
+                lr.endColor = Color.white;
+            }
+            else
+            {
+                lr.startColor = Color.red;
+                lr.endColor = Color.red;
+            }
+
             lr.sortingOrder = 0;
             return lr;
         }

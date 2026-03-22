@@ -9,7 +9,7 @@ namespace Application.UseCases
     // ActiveMino を指定軸・方向で 90° 回転する（UseCase_RotateMino.md）
     public static class RotateMinoUseCase
     {
-        public static GameState Execute(GameState gameState, RotateAxis axis, CubeTurn turn)
+        public static GameState Execute(GameState gameState, CubeOperation op)
         {
             if (gameState == null)
                 throw new ArgumentNullException(nameof(gameState));
@@ -19,7 +19,7 @@ namespace Application.UseCases
                 return gameState;
 
             var cube = new Cube(new BlockGroup(mino.BlockGroup.Blocks));
-            var rotatedCube = cube.Rotate(axis, turn, mino.Pivot);
+            var rotatedCube = cube.Rotate(op, mino.Pivot);
             var rotatedMino = mino.WithBlockGroup(rotatedCube);
 
             if (rotatedMino.IsColliding(gameState.Field))

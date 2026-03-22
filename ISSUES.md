@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-22（Task 032 CubeUIController 実装完了）
+最終更新: 2026-03-22（Task 041 実装完了）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -34,9 +34,17 @@
 | 028 | LockDownState の実装 | ✅ |
 | 029 | ClearingState の実装 | ✅ |
 | 030 | FieldUIView の実装 | ✅ |
-| 031 | FieldUIView の動作確認 | 未着手 |
+| 031 | FieldUIView の動作確認 | ✅ |
 | 032 | CubeUIController の実装 | ✅ |
-| 033 | CubeUIController の動作確認 | 未着手 |
+| 033 | CubeUIController の動作確認 | ✅ |
+| 034 | KeyboardInputDetector の実装 | ✅ |
+| 036 | CubeInputDetector の実装 | ✅ |
+| 037 | スクランブル演出の実装 | ✅ |
+| 038 | スクランブル演出の動作確認 | ✅ |
+| 039 | CubeOperation の実装 | ✅ |
+| 040 | CubeOperation のユニットテスト | ✅ |
+| 041 | GamepadInputDetector の実装 | ✅ |
+| 042 | GamepadInputDetector の動作確認 | 未着手 |
 
 ---
 
@@ -433,8 +441,8 @@
     - ゲームオーバー時に描画が止まること
 - **参照仕様**: `Docs/Presentation/Views/Gameplay/Presentation_Views_FieldUIView.md`
 
-## [Task 031] FieldUIView の動作確認 [ ]
-- **ステータス**: 未着手
+## [Task 031] FieldUIView の動作確認 [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: `FieldUIView` を Unity シーンに配置し、ゲームループと接続して動作確認する。
 - **確認内容**:
@@ -458,8 +466,8 @@
     - `ExecuteRotate` 呼び出しで回転アニメーションが再生されること
     - `UnityEngine` 以外の依存は Application・Domain 層のインターフェース経由であること
 
-## [Task 033] CubeUIController の動作確認 [ ]
-- **ステータス**: 未着手
+## [Task 033] CubeUIController の動作確認 [x]
+- **ステータス**: 完了 ✅
 - **優先度**: 高
 - **概要**: `CubeUIController` を Unity シーンに配置し、キューブエリアとフィールドエリアが同期して動作することを確認する。
 - **確認内容**:
@@ -468,10 +476,129 @@
     - ゲームオーバー時に両エリアの描画が止まること
 - **完了条件**: Unity エディタの Play モードで上記が目視確認できること
 
+## [Task 034] KeyboardInputDetector の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: キーボード入力を検知し、回転・移動・落下操作を `CubeUIController` / `MoveMinoUseCase` / `DropMinoUseCase` に橋渡しする `MonoBehaviour`。
+- **実装対象**:
+    - `KeyboardInputDetector`: `MonoBehaviour`
+    - R/U/F/L/D/B キー → 対応する `RotateAxis` / `CubeTurn` で `CubeUIController.ExecuteRotateAsync` を呼ぶ
+    - Shift + 対応キー → 逆回転（`CubeTurn.CounterClockwise`）
+    - ← → → `MoveMinoUseCase.Execute` で左右移動し `GameStateMachine.ApplyGameState`
+    - ↓ → `DropMinoUseCase.Execute(DropType.Soft)` で `ApplyGameState`
+    - Space → `DropMinoUseCase.Execute(DropType.Hard)` で `ApplyGameState`
+- **配置**: `Assets/Scripts/Presentation/InputDetectors/KeyboardInputDetector.cs`
+- **参照仕様**: `Docs/Presentation/UI_Layout.md` §6.2
+
+## [Task 036] CubeInputDetector の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 中
+- **概要**: iPhoneタッチ入力を検知し、キューブエリアの楕円・角丸四角パーツへのスワイプ・タップを回転操作に変換する `MonoBehaviour`。
+- **実装対象**:
+    - `CubeInputDetector`: `MonoBehaviour`
+    - 楕円パーツへのスワイプ → R/L/U/D 回転
+    - 角丸四角パーツへのシングルタップ → F/B 回転
+    - 角丸四角パーツへのダブルタップ → F'/B' 逆回転
+- **配置**: `Assets/Scripts/Presentation/InputDetectors/CubeInputDetector.cs`
+- **参照仕様**: `Docs/Presentation/UI_Layout.md` §6.1
+
+## [Task 037] スクランブル演出の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: ミノスポーン時に「整列状態で表示 → 高速スクランブル回転アニメーション → 落下開始」という演出を追加する。
+- **実装内容**:
+    - `SpawningState.Execute` を修正し、スポーン直後に `GamePhase.Scrambling` フェーズへ遷移する
+    - `ScramblingState` を新規作成する（`IGamePhaseState` を実装）
+    - `ScramblingState` はスクランブル回転リスト（`SpawnMinoUseCase` が生成した回転手順）を保持し、`CubeUIController` に順番に `ExecuteRotateAsync` を呼ばせて高速回転アニメーションを再生する
+    - 全回転完了後に `FallingState` へ遷移する
+    - スクランブル中はテトリス操作（移動・落下）を受け付けない
+    - スクランブル中はルービックキューブ操作も受け付けない
+- **設計上の課題**:
+    - `ScramblingState`（Application層）から `CubeUIController`（Presentation層）を呼ぶことはできない
+    - 解決策: `SpawnMinoUseCase` が生成したスクランブル回転リストを `GameState` に持たせ、Presentation層が `GameState.ScramblingMoves` を購読して演出を再生する
+- **配置**:
+    - `Assets/Scripts/Application/PhaseStates/ScramblingState.cs`
+    - `GameState` に `ScramblingMoves` プロパティを追加
+    - `SpawnMinoUseCase` にスクランブル手順の記録を追加
+- **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
+
+## [Task 038] スクランブル演出の動作確認 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: スクランブル演出が正しく動作することを Unity エディタで目視確認する。
+- **確認内容**:
+    - ミノスポーン時に整列状態で表示されること
+    - 高速回転アニメーションが順番に再生されること
+    - 全回転完了後に落下が開始されること
+    - スクランブル中に操作が無効になること
+- **完了条件**: Unity エディタの Play モードで上記が目視確認できること
+
+## [Task 039] CubeOperation の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: ルービックキューブの12操作（R/Ri/L/Li/U/Ui/D/Di/F/Fi/B/Bi）を表す列挙型と、`RotateAxis`+`CubeTurn` への変換拡張メソッドを実装する。
+- **実装対象**:
+    - `CubeOperation`: `Domain.Cube.Enums` に追加する列挙型
+    - `CubeOperationExtensions`: `ToAxisAndTurn(this CubeOperation op)` 拡張メソッドを持つ静的クラス。`Presentation` 名前空間に配置（`CubeUIController` から使用）
+    - `SwipeConfig` / `TapConfig` / `CubeRotation` を `CubeOperation` ベースに変更する
+    - `CubeInputDetector.OnRotationDetected` を `CubeOperation` 経由で `ExecuteRotateAsync` を呼ぶように変更する
+    - `KeyboardInputDetector` の各回転ハンドラも `CubeOperation` 経由に変更する
+- **配置**:
+    - `Assets/Scripts/Domain/Cube/Enums/CubeOperation.cs`
+    - `Assets/Scripts/Presentation/CubeOperationExtensions/CubeOperationExtensions.cs`（`Presentation.CubeOperationExtensions.asmdef`）
+- **完了条件**:
+    - `UnityEngine` に依存しない純粋な C# であること
+    - コンパイルエラーが出ないこと
+
+## [Task 040] CubeOperation のユニットテスト [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `CubeOperationExtensions.ToAxisAndTurn` の変換結果を NUnit で検証する。
+- **実装対象**: `Assets/Tests/Domain/CubeOperationExtensionsTest.cs`（`Domain.Tests.asmdef` が `Presentation.CubeOperationExtensions` を参照）
+- **テストケース**:
+    - `R_Returns_X_Clockwise` / `Ri_Returns_X_CounterClockwise`
+    - `L_Returns_X_CounterClockwise` / `Li_Returns_X_Clockwise`
+    - `U_Returns_Y_Clockwise` / `Ui_Returns_Y_CounterClockwise`
+    - `D_Returns_Y_CounterClockwise` / `Di_Returns_Y_Clockwise`
+    - `F_Returns_Z_Clockwise` / `Fi_Returns_Z_CounterClockwise`
+    - `B_Returns_Z_CounterClockwise` / `Bi_Returns_Z_Clockwise`
+- **完了条件**: `CubeOperationExtensionsTest` を含むプロジェクトのテストがオールグリーンであること
+
+## [Task 041] GamepadInputDetector の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 中
+- **概要**: ゲームパッド入力を検知し、回転・移動・落下操作を `CubeUIController` / `MoveMinoUseCase` / `DropMinoUseCase` に橋渡しする `MonoBehaviour`。`KeyboardInputDetector` と同じ構造で入力デバイスのみ異なる。
+- **実装対象**:
+    - `GamepadInputDetector`: `MonoBehaviour`
+    - `[SerializeField] InputActionReference` で各アクションを個別に持つ
+      - 回転: `_rotateRAction` / `_rotateUAction` / `_rotateFAction` / `_rotateLAction` / `_rotateDAction` / `_rotateBAction`
+      - 修飾: `_counterClockwiseModifierAction`
+      - テトリス: `_moveLeftAction` / `_moveRightAction` / `_softDropAction` / `_hardDropAction`
+    - `OnEnable` / `OnDisable` で各アクションを `EnableAndSubscribe` / `DisableAndUnsubscribe` で購読管理する
+    - 各回転ハンドラは `CubeOperation` 経由で `_cubeUIController.ExecuteRotateAsync(operation).Forget()` を呼ぶ
+    - テトリス操作は `MoveMinoUseCase` / `DropMinoUseCase` → `_stateMachine.ApplyGameState` で反映する
+    - スクランブル中・ゲームオーバー時は入力を無視する（`TryConsumeGameplayInput` で判定）
+    - `Initialize(GameStateMachine stateMachine)` で `_stateMachine` を受け取る
+- **配置**: `Assets/Scripts/Presentation/InputDetectors/GamepadInputDetector.cs`
+- **参照仕様**: `Docs/Presentation/UI_Layout.md` §6.3
+
+## [Task 042] GamepadInputDetector の動作確認 [ ]
+- **ステータス**: 未着手
+- **優先度**: 中
+- **概要**: ゲームパッドを接続して動作確認する。
+- **確認内容**:
+    - 各ボタンで対応する回転が実行されること
+    - トリガーで逆回転になること
+    - 左スティックで移動・ソフトドロップができること
+    - Xボタンでハードドロップができること
+    - スクランブル中に操作が無効になること
+- **完了条件**: ゲームパッドで上記が目視確認できること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 034以降: InputDetector の実装（KeyboardInputDetector / CubeInputDetector / GamepadInputDetector）
+- Task 043以降: ゲームオーバー画面・スコア表示
+- ActiveMino落下中の表示欠け修正（1セル欠けるケースあり）
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
 - ドキュメントパスの整理（Docs/Domains/ と Docs/ の混在）

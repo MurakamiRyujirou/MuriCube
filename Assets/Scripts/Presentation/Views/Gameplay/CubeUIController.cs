@@ -15,10 +15,14 @@ namespace Presentation.Views.Gameplay
     {
         [SerializeField] private CubeUIView _cubeUIView;
         [SerializeField] private float _rotateDuration = 0.3f;
+        [SerializeField] private float _scramblingRotateDuration = 0.15f;
 
         private GameStateMachine _stateMachine;
         private IDisposable _subscription;
         private ActiveMino _lastActiveMinoRef;
+        private int _previousScramblingMovesCount;
+        private bool _scramblePlaybackRunning;
+        private bool _buildRetryScheduled;
 
         public void Initialize(GameStateMachine stateMachine)
         {
@@ -31,10 +35,17 @@ namespace Presentation.Views.Gameplay
             _subscription?.Dispose();
             _subscription = _stateMachine.GameStateObservable.Subscribe(OnGameStateChanged);
 
-            TryBuildFromState(_stateMachine.GameStateObservable.CurrentValue);
+            var current = _stateMachine.GameStateObservable.CurrentValue;
+            _previousScramblingMovesCount = current.ScramblingMoves.Count;
+            TryBuildFromState(current, _previousScramblingMovesCount);
         }
 
-        public async UniTaskVoid ExecuteRotateAsync(RotateAxis axis, CubeTurn turn)
+        public async UniTask ExecuteRotateAsync(CubeOperation operation, float? durationOverride = null)
+        {
+            await ExecuteRotateCoreAsync(operation, durationOverride);
+        }
+
+        private async UniTask ExecuteRotateCoreAsync(CubeOperation operation, float? durationOverride = null)
         {
             if (_cubeUIView == null || _stateMachine == null)
                 return;
@@ -46,27 +57,56 @@ namespace Presentation.Views.Gameplay
                 return;
 
             var cube = new Cube(new BlockGroup(activeMino.BlockGroup.Blocks));
-            if (!cube.CanRotate(axis, turn, activeMino.Pivot))
+            if (!cube.CanRotate(operation, activeMino.Pivot))
                 return;
 
-            var affected = cube.GetAffectedBlocks(axis, turn, activeMino.Pivot);
-            await _cubeUIView.RotateAsync(axis, turn, activeMino.Pivot, _rotateDuration, affected);
+            var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(operation);
+            var duration = durationOverride ?? _rotateDuration;
+            var affected = cube.GetAffectedBlocks(operation, activeMino.Pivot);
+            await _cubeUIView.RotateAsync(axis, turn, activeMino.Pivot, duration, affected);
 
-            var positionMap = cube.GetPositionMap(axis, turn, activeMino.Pivot);
-            var rotatedCube = cube.Rotate(axis, turn, activeMino.Pivot);
+            var positionMap = cube.GetPositionMap(operation, activeMino.Pivot);
+            var rotatedCube = cube.Rotate(operation, activeMino.Pivot);
             _cubeUIView.Refresh(rotatedCube, positionMap);
 
-            var newGameState = RotateMinoUseCase.Execute(_stateMachine.GameStateObservable.CurrentValue, axis, turn);
+            var newGameState = RotateMinoUseCase.Execute(_stateMachine.GameStateObservable.CurrentValue, operation);
             _lastActiveMinoRef = newGameState.ActiveMino;
             _stateMachine.ApplyGameState(newGameState);
         }
 
         private void OnGameStateChanged(GameState state)
         {
-            TryBuildFromState(state);
+            var prevScramble = _previousScramblingMovesCount;
+            TryBuildFromState(state, prevScramble);
+
+            if (state.ScramblingMoves.Count > 0 && prevScramble == 0 && !_scramblePlaybackRunning)
+                PlayScramblingAsync(state).Forget();
+
+            _previousScramblingMovesCount = state.ScramblingMoves.Count;
         }
 
-        private void TryBuildFromState(GameState state)
+        private async UniTaskVoid PlayScramblingAsync(GameState stateWithScramble)
+        {
+            if (_stateMachine == null || _cubeUIView == null)
+                return;
+
+            _scramblePlaybackRunning = true;
+            try
+            {
+                var moves = stateWithScramble.ScramblingMoves;
+                foreach (var move in moves)
+                    await ExecuteRotateCoreAsync(move.Operation, _scramblingRotateDuration);
+
+                var current = _stateMachine.GameStateObservable.CurrentValue;
+                _stateMachine.ApplyGameState(current with { ScramblingMoves = Array.Empty<ScramblingMove>() });
+            }
+            finally
+            {
+                _scramblePlaybackRunning = false;
+            }
+        }
+
+        private void TryBuildFromState(GameState state, int previousScramblingMovesCount)
         {
             if (state == null)
                 return;
@@ -78,11 +118,55 @@ namespace Presentation.Views.Gameplay
                 return;
             }
 
-            if (!ReferenceEquals(_lastActiveMinoRef, active))
+            if (ReferenceEquals(_lastActiveMinoRef, active))
+                return;
+
+            // 回転アニメ中は Build できない。落下などで ActiveMino が先に変わった場合は終了後に再試行する。
+            if (_cubeUIView.IsRotating)
+            {
+                ScheduleTryBuildWhenRotationIdle();
+                return;
+            }
+
+            if (state.ScramblingMoves.Count > 0 && previousScramblingMovesCount == 0)
             {
                 _cubeUIView.Build(active.BlockGroup);
+                _cubeUIView.SetPivotAxisLine(active.Pivot.X, active.Pivot.Y, active.Pivot.Z);
+                _lastActiveMinoRef = active;
+                return;
+            }
+
+            if (state.ScramblingMoves.Count == 0)
+            {
+                _cubeUIView.Build(active.BlockGroup);
+                _cubeUIView.SetPivotAxisLine(active.Pivot.X, active.Pivot.Y, active.Pivot.Z);
                 _lastActiveMinoRef = active;
             }
+        }
+
+        private void ScheduleTryBuildWhenRotationIdle()
+        {
+            if (_buildRetryScheduled)
+                return;
+            _buildRetryScheduled = true;
+            WaitAndRetryTryBuildFromStateAsync().Forget();
+        }
+
+        private async UniTaskVoid WaitAndRetryTryBuildFromStateAsync()
+        {
+            try
+            {
+                await UniTask.WaitUntil(() => _cubeUIView == null || !_cubeUIView.IsRotating);
+            }
+            finally
+            {
+                _buildRetryScheduled = false;
+            }
+
+            if (_stateMachine == null || _cubeUIView == null)
+                return;
+
+            TryBuildFromState(_stateMachine.GameStateObservable.CurrentValue, _previousScramblingMovesCount);
         }
 
         private void OnDestroy()

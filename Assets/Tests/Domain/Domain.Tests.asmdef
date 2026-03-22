@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "Domain",
+        "Presentation.CubeOperationExtensions",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

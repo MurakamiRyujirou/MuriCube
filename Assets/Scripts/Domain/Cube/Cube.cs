@@ -21,26 +21,21 @@ namespace Domain.Cube
 
         public IReadOnlyDictionary<BlockPosition, IBlock> Blocks => _blockGroup.Blocks;
 
-        // 指定軸・方向・Pivot に対して回転対象となるブロックの座標を返す。
-        // CW は正方向側、CCW は負方向側を対象（X: CW→pos.X>pivot.X など）
-        public IReadOnlyCollection<BlockPosition> GetAffectedBlocks(RotateAxis axis, CubeTurn turn, PivotPosition pivot)
+        public IReadOnlyCollection<BlockPosition> GetAffectedBlocks(CubeOperation op, PivotPosition pivot)
         {
             return _blockGroup.Blocks.Keys
-                .Where(pos => IsAffected(pos, axis, turn, pivot))
+                .Where(pos => CubeOperationRotation.IsAffected(pos, op, pivot))
                 .ToList();
         }
 
-        // 回転対象のみ「旧座標 → 新座標」。Rotate 前の Cube で取得し、Refresh で回転後の IBlockGroup と併用する
-        public IReadOnlyDictionary<BlockPosition, BlockPosition> GetPositionMap(
-            RotateAxis axis,
-            CubeTurn turn,
-            PivotPosition pivot)
+        public IReadOnlyDictionary<BlockPosition, BlockPosition> GetPositionMap(CubeOperation op, PivotPosition pivot)
         {
+            var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(op);
             var map = new Dictionary<BlockPosition, BlockPosition>();
 
             foreach (var pos in _blockGroup.Blocks.Keys)
             {
-                if (!IsAffected(pos, axis, turn, pivot)) continue;
+                if (!CubeOperationRotation.IsAffected(pos, op, pivot)) continue;
                 var newPos = RotatePosition(pos, axis, turn, pivot);
                 map[pos] = newPos;
             }
@@ -48,18 +43,18 @@ namespace Domain.Cube
             return map;
         }
 
-        // 回転後に静止ブロックや回転ブロック同士で重なる場合は false
-        public bool CanRotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)
+        public bool CanRotate(CubeOperation op, PivotPosition pivot)
         {
             var stationaryPositions = _blockGroup.Blocks.Keys
-                .Where(pos => !IsAffected(pos, axis, turn, pivot))
+                .Where(pos => !CubeOperationRotation.IsAffected(pos, op, pivot))
                 .ToList();
 
             var rotatedPositions = new List<BlockPosition>();
+            var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(op);
 
             foreach (var pos in _blockGroup.Blocks.Keys)
             {
-                if (!IsAffected(pos, axis, turn, pivot)) continue;
+                if (!CubeOperationRotation.IsAffected(pos, op, pivot)) continue;
                 var newPos = RotatePosition(pos, axis, turn, pivot);
 
                 foreach (var stationaryPos in stationaryPositions)
@@ -87,12 +82,12 @@ namespace Domain.Cube
                    Math.Abs(a.Z - b.Z) < 1.0f;
         }
 
-        // 不変操作。空の BlockGroup では this を返す
-        public Cube Rotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)
+        public Cube Rotate(CubeOperation op, PivotPosition pivot)
         {
             var blocks = _blockGroup.Blocks;
             if (blocks.Count == 0) return this;
 
+            var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(op);
             var nextBlocks = new Dictionary<BlockPosition, Block>();
 
             foreach (var kv in blocks)
@@ -101,7 +96,7 @@ namespace Domain.Cube
                 if (kv.Value is not Block block)
                     throw new InvalidOperationException("Cube.Rotate には Block 具象が必要です。");
 
-                if (IsAffected(pos, axis, turn, pivot))
+                if (CubeOperationRotation.IsAffected(pos, op, pivot))
                 {
                     var newPos = RotatePosition(pos, axis, turn, pivot);
                     var blockTurn = axis == RotateAxis.Z ? InvertTurn(turn) : turn;
@@ -115,18 +110,6 @@ namespace Domain.Cube
             }
 
             return new Cube(new BlockGroup(nextBlocks));
-        }
-
-        private static bool IsAffected(BlockPosition pos, RotateAxis axis, CubeTurn turn, PivotPosition pivot)
-        {
-            var usePositiveSide = turn == CubeTurn.Clockwise || turn == CubeTurn.HalfTurn;
-            return axis switch
-            {
-                RotateAxis.X => usePositiveSide ? pos.X > pivot.X : pos.X < pivot.X,
-                RotateAxis.Y => usePositiveSide ? pos.Y > pivot.Y : pos.Y < pivot.Y,
-                RotateAxis.Z => usePositiveSide ? pos.Z < pivot.Z : pos.Z > pivot.Z,
-                _ => false
-            };
         }
 
         private static CubeTurn InvertTurn(CubeTurn turn)
@@ -151,7 +134,6 @@ namespace Domain.Cube
             };
         }
 
-        // 相対座標で直交2軸を CubeTurn に応じて置換し、Pivot を足し戻す（TechSpecs §3.1・Domain_Cube.md）
         private static BlockPosition RotatePosition(
             BlockPosition pos,
             RotateAxis axis,

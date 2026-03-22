@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Application;
 using Application.UseCases;
@@ -95,7 +96,8 @@ namespace Application.Tests
                 Score: score,
                 Level: level,
                 ClearedLineCount: clearedLineCount,
-                IsGameOver: false);
+                IsGameOver: false,
+                ScramblingMoves: Array.Empty<ScramblingMove>());
         }
 
         private static Block CreateAnyBlock()

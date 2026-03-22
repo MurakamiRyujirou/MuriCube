@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Application;
 using Domain.Cube;
@@ -25,26 +26,39 @@ namespace Application.UseCases
                 throw new ArgumentNullException(nameof(random));
 
             var type = RandomMinoType(random);
-            var mino = MinoFactory.Create(type);
+            var alignedMino = MinoFactory.Create(type);
 
-            var blockGroup = new BlockGroup(mino.BlockGroup.Blocks);
+            var blockGroup = new BlockGroup(alignedMino.BlockGroup.Blocks);
             var cube = new Cube(blockGroup);
-            var pivot = mino.Pivot;
+            var pivot = alignedMino.Pivot;
+            var moves = new List<ScramblingMove>();
 
             for (var i = 0; i < RandomRotationCount; i++)
             {
                 var axis = (RotateAxis)random.Next(3);
-                cube = cube.Rotate(axis, CubeTurn.Clockwise, pivot);
+                var op = axis switch
+                {
+                    RotateAxis.X => CubeOperation.R,
+                    RotateAxis.Y => CubeOperation.U,
+                    RotateAxis.Z => CubeOperation.F,
+                    _ => CubeOperation.R
+                };
+                if (cube.CanRotate(op, pivot))
+                {
+                    moves.Add(new ScramblingMove(op));
+                    cube = cube.Rotate(op, pivot);
+                }
             }
 
-            mino = mino.WithBlockGroup(cube);
-            var spawnOffset = ComputeSpawnOffset(mino);
-            mino = mino.WithOffset(spawnOffset);
+            var rotatedMino = alignedMino.WithBlockGroup(cube);
+            var spawnOffset = ComputeSpawnOffset(rotatedMino);
+            rotatedMino = rotatedMino.WithOffset(spawnOffset);
 
-            if (mino.IsColliding(gameState.Field))
+            if (rotatedMino.IsColliding(gameState.Field))
                 return gameState with { IsGameOver = true };
 
-            return gameState with { ActiveMino = mino };
+            var activeAlignedAtSpawn = alignedMino.WithOffset(spawnOffset);
+            return gameState with { ActiveMino = activeAlignedAtSpawn, ScramblingMoves = moves };
         }
 
         // オフセット (0,0,0) 時の絶対セル（= 丸め後ローカル）の最小 X/Y を基準に目標位置へ寄せ、ウェル内に収まるよう Clamp する

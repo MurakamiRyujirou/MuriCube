@@ -67,17 +67,17 @@ namespace Presentation.Views.Gameplay
             else if (keyboard.digit7Key.wasPressedThisFrame) SwitchToPiece(6);
             // R/L/U/D/F/B: 回転
             else if (keyboard.rKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.X, CubeTurn.Clockwise, _currentPivot, "R").Forget();
+                ExecuteRotateAsync(CubeOperation.R, _currentPivot, "R").Forget();
             else if (keyboard.lKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.X, CubeTurn.CounterClockwise, _currentPivot, "L").Forget();
+                ExecuteRotateAsync(CubeOperation.L, _currentPivot, "L").Forget();
             else if (keyboard.uKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Y, CubeTurn.Clockwise, _currentPivot, "U").Forget();
+                ExecuteRotateAsync(CubeOperation.U, _currentPivot, "U").Forget();
             else if (keyboard.dKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Y, CubeTurn.CounterClockwise, _currentPivot, "D").Forget();
+                ExecuteRotateAsync(CubeOperation.D, _currentPivot, "D").Forget();
             else if (keyboard.fKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Z, CubeTurn.Clockwise, _currentPivot, "F").Forget();
+                ExecuteRotateAsync(CubeOperation.F, _currentPivot, "F").Forget();
             else if (keyboard.bKey.wasPressedThisFrame)
-                ExecuteRotateAsync(RotateAxis.Z, CubeTurn.CounterClockwise, _currentPivot, "B").Forget();
+                ExecuteRotateAsync(CubeOperation.B, _currentPivot, "B").Forget();
         }
 
         private void SwitchToPiece(int index)
@@ -92,26 +92,27 @@ namespace Presentation.Views.Gameplay
             LogDomainPositions("初期化後");
         }
 
-        private async UniTaskVoid ExecuteRotateAsync(RotateAxis axis, CubeTurn turn, (float X, float Y, float Z) pivotTuple, string faceLabel)
+        private async UniTaskVoid ExecuteRotateAsync(CubeOperation op, (float X, float Y, float Z) pivotTuple, string faceLabel)
         {
             if (_cubeUIView.IsRotating) return;
 
             var pivot = new PivotPosition(pivotTuple.X, pivotTuple.Y, pivotTuple.Z);
-            if (!_cube.CanRotate(axis, turn, pivot))
+            if (!_cube.CanRotate(op, pivot))
             {
                 Debug.Log($"[CubeViewTest] {faceLabel}: 回転後に座標衝突が発生するため操作を無視");
                 return;
             }
-            var affected = _cube.GetAffectedBlocks(axis, turn, pivot);
+            var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(op);
+            var affected = _cube.GetAffectedBlocks(op, pivot);
             await _cubeUIView.RotateAsync(axis, turn, pivot, _rotateDuration, affected);
 
             // Refresh 前のブロック位置をログ
             _cubeUIView.LogBlockPositions("Refresh前");
 
-            var positionMap = _cube.GetPositionMap(axis, turn, pivot);
+            var positionMap = _cube.GetPositionMap(op, pivot);
             foreach (var kv in positionMap)
                 Debug.Log($"[CubeViewTest] positionMap: ({kv.Key.X},{kv.Key.Y},{kv.Key.Z}) -> ({kv.Value.X},{kv.Value.Y},{kv.Value.Z})");
-            _cube = _cube.Rotate(axis, turn, pivot);
+            _cube = _cube.Rotate(op, pivot);
             _cubeUIView.Refresh(_cube, positionMap);
 
             // Refresh 後のブロック位置をログ

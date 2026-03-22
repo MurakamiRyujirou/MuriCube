@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Application;
 using Application.UseCases;
@@ -82,7 +83,8 @@ namespace Application.Tests
                 Score: 0,
                 Level: 0,
                 ClearedLineCount: 0,
-                IsGameOver: false);
+                IsGameOver: false,
+                ScramblingMoves: Array.Empty<ScramblingMove>());
         }
 
         private static ActiveMino CreateSingleCellMino(CubePosition offset)

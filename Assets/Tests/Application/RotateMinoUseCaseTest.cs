@@ -28,7 +28,7 @@ namespace Application.Tests
             Assert.AreEqual(BlockColor.Green, before.GetColor(BlockFace.Front));
             Assert.AreEqual(BlockColor.Orange, before.GetColor(BlockFace.Left));
 
-            var result = RotateMinoUseCase.Execute(gameState, RotateAxis.Y, CubeTurn.Clockwise);
+            var result = RotateMinoUseCase.Execute(gameState, CubeOperation.U);
 
             Assert.IsNotNull(result.ActiveMino);
             var after = GetOnlyBlock(result.ActiveMino);
@@ -42,7 +42,7 @@ namespace Application.Tests
             var mino = CreateSingleCellMinoStub(new CubePosition(Field.MaxX, Field.MaxY, 0));
             var gameState = StateWithMino(mino);
 
-            var result = RotateMinoUseCase.Execute(gameState, RotateAxis.Z, CubeTurn.Clockwise);
+            var result = RotateMinoUseCase.Execute(gameState, CubeOperation.F);
 
             Assert.AreSame(gameState, result);
         }
@@ -52,7 +52,7 @@ namespace Application.Tests
         {
             var gameState = GameState.Initial;
 
-            var result = RotateMinoUseCase.Execute(gameState, RotateAxis.Y, CubeTurn.Clockwise);
+            var result = RotateMinoUseCase.Execute(gameState, CubeOperation.U);
 
             Assert.AreSame(gameState, result);
         }
@@ -69,7 +69,7 @@ namespace Application.Tests
 
             var state = gameState;
             for (var i = 0; i < 4; i++)
-                state = RotateMinoUseCase.Execute(state, RotateAxis.Y, CubeTurn.Clockwise);
+                state = RotateMinoUseCase.Execute(state, CubeOperation.U);
 
             Assert.IsNotNull(state.ActiveMino);
             var finalBlock = GetOnlyBlock(state.ActiveMino);
@@ -84,7 +84,8 @@ namespace Application.Tests
                 Score: 0,
                 Level: 0,
                 ClearedLineCount: 0,
-                IsGameOver: false);
+                IsGameOver: false,
+                ScramblingMoves: Array.Empty<ScramblingMove>());
         }
 
         private static Block CreateStandardBlock()

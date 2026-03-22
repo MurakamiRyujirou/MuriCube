@@ -1,6 +1,7 @@
 using System;
 using Application;
 using Application.PhaseStates;
+using Presentation.InputDetectors;
 using Presentation.Views.Gameplay;
 using R3;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace Presentation.GameLoopDebug
         [SerializeField] private float _timeScale = 1f;
         [SerializeField] private FieldUIView _fieldUIView;
         [SerializeField] private CubeUIController _cubeUIController;
+        [SerializeField] private KeyboardInputDetector _keyboardInputDetector;
+        [SerializeField] private GamepadInputDetector _gamepadInputDetector;
 
         private GameStateMachine _stateMachine;
         private IDisposable _subscription;
@@ -29,6 +32,9 @@ namespace Presentation.GameLoopDebug
                 _fieldUIView.Initialize(_stateMachine);
 
             _cubeUIController?.Initialize(_stateMachine);
+
+            _keyboardInputDetector?.Initialize(_stateMachine);
+            _gamepadInputDetector?.Initialize(_stateMachine);
         }
 
         private void Update()

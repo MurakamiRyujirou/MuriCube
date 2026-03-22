@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace Domain.Tests
 {
-    // Cube の Rotate(axis, turn, pivot) が公転・自転ともに正しく動作することを検証する
+    // Cube の Rotate(CubeOperation, pivot) が公転・自転ともに正しく動作することを検証する
     public class CubeTest
     {
         // Up=White, Down=Yellow, Left=Orange, Right=Red, Front=Green, Back=Blue
@@ -51,7 +51,7 @@ namespace Domain.Tests
         {
             var cube = new Domain.Cube.Cube(new Domain.Cube.BlockGroup(new Dictionary<BlockPosition, Domain.Cube.Block>()));
             var pivot = new Domain.Cube.PivotPosition(0f, 0f, 0f);
-            var result = cube.Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot);
+            var result = cube.Rotate(CubeOperation.R, pivot);
             Assert.AreSame(cube, result, "空の BlockGroup は同インスタンスを返すこと");
         }
 
@@ -67,15 +67,15 @@ namespace Domain.Tests
             var cube = MakeCube(blocks);
             var pivot = new Domain.Cube.PivotPosition(1f, 0.5f, 0.5f);
 
-            var xAffected = cube.GetAffectedBlocks(RotateAxis.X, CubeTurn.Clockwise, pivot); // X CW: pos.X > 1 → (2,0,1)
+            var xAffected = cube.GetAffectedBlocks(CubeOperation.R, pivot); // R: pos.X > 1 → (2,0,1)
             Assert.AreEqual(1, xAffected.Count);
             Assert.IsTrue(xAffected.Contains(new BlockPosition(2, 0, 1)));
 
-            var yAffected = cube.GetAffectedBlocks(RotateAxis.Y, CubeTurn.Clockwise, pivot); // Y CW: pos.Y > 0.5 → (1,1,0)
+            var yAffected = cube.GetAffectedBlocks(CubeOperation.U, pivot); // U: pos.Y > 0.5 → (1,1,0)
             Assert.AreEqual(1, yAffected.Count);
             Assert.IsTrue(yAffected.Contains(new BlockPosition(1, 1, 0)));
 
-            var zAffected = cube.GetAffectedBlocks(RotateAxis.Z, CubeTurn.Clockwise, pivot); // Z CW: pos.Z < 0.5 → (0,0,0), (1,1,0)
+            var zAffected = cube.GetAffectedBlocks(CubeOperation.F, pivot); // F: pos.Z < 0.5 → (0,0,0), (1,1,0)
             Assert.AreEqual(2, zAffected.Count);
             Assert.IsTrue(zAffected.Contains(new BlockPosition(0, 0, 0)));
             Assert.IsTrue(zAffected.Contains(new BlockPosition(1, 1, 0)));
@@ -94,7 +94,7 @@ namespace Domain.Tests
                 [new BlockPosition(2, 0, 0)] = CreateStandardBlock(),
                 [new BlockPosition(2, 1, 0)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.X, CubeTurn.Clockwise, 1f, 0.5f, 0.5f);
+            var rotated = Rotate(blocks, CubeOperation.R, 1f, 0.5f, 0.5f);
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(2, 1, 0)), "(2,0,0)→(2,1,0)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(2, 1, 1)), "(2,1,0)→(2,1,1)");
@@ -103,15 +103,32 @@ namespace Domain.Tests
         }
 
         [Test]
-        public void Cube_RotateX_CounterClockwise_公転と自転()
+        public void Cube_RotateRi_右レイヤーはRと同じブロックが対象()
         {
-            // X CCW: pos.X < 1 の (0,0,0),(0,1,0) が対象。Pivot(1,0.5,0.5) で (0,0,0)→(0,0,1)、(0,1,0)→(0,0,0)
+            var pivot = new Domain.Cube.PivotPosition(1f, 0.5f, 0.5f);
+            var blocks = new Dictionary<BlockPosition, Domain.Cube.Block>
+            {
+                [new BlockPosition(2, 0, 0)] = CreateStandardBlock(),
+                [new BlockPosition(0, 0, 0)] = CreateStandardBlock(),
+            };
+            var cube = MakeCube(blocks);
+            var r = cube.GetAffectedBlocks(CubeOperation.R, pivot);
+            var ri = cube.GetAffectedBlocks(CubeOperation.Ri, pivot);
+            Assert.AreEqual(r.Count, ri.Count);
+            foreach (var p in r)
+                Assert.IsTrue(ri.Contains(p));
+        }
+
+        [Test]
+        public void Cube_RotateL_公転と自転()
+        {
+            // L: 左レイヤー pos.X < 1 の (0,0,0),(0,1,0)。Pivot(1,0.5,0.5) で (0,0,0)→(0,0,1)、(0,1,0)→(0,0,0)
             var blocks = new Dictionary<BlockPosition, Domain.Cube.Block>
             {
                 [new BlockPosition(0, 0, 0)] = CreateStandardBlock(),
                 [new BlockPosition(0, 1, 0)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.X, CubeTurn.CounterClockwise, 1f, 0.5f, 0.5f);
+            var rotated = Rotate(blocks, CubeOperation.L, 1f, 0.5f, 0.5f);
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 0, 1)), "(0,0,0)→(0,0,1)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 0, 0)), "(0,1,0)→(0,0,0)");
@@ -122,13 +139,15 @@ namespace Domain.Tests
         [Test]
         public void Cube_RotateX_HalfTurn_公転と自転()
         {
-            // Block.X > 1 の (2,0,0),(2,1,0) が対象。HalfTurn: (2,0,0)→(2,1,1)、(2,1,0)→(2,0,1)
+            // Block.X > 1 の (2,0,0),(2,1,0) が対象。R を2回で 180°（HalfTurn 相当）
             var blocks = new Dictionary<BlockPosition, Domain.Cube.Block>
             {
                 [new BlockPosition(2, 0, 0)] = CreateStandardBlock(),
                 [new BlockPosition(2, 1, 0)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.X, CubeTurn.HalfTurn, 1f, 0.5f, 0.5f);
+            var cube = MakeCube(blocks);
+            var pivot = new Domain.Cube.PivotPosition(1f, 0.5f, 0.5f);
+            var rotated = cube.Rotate(CubeOperation.R, pivot).Rotate(CubeOperation.R, pivot).Blocks;
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(2, 1, 1)), "(2,0,0)→(2,1,1)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(2, 0, 1)), "(2,1,0)→(2,0,1)");
@@ -148,10 +167,10 @@ namespace Domain.Tests
             var pivot = new Domain.Cube.PivotPosition(1f, 0.5f, 0.5f);
 
             var result = cube
-                .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.X, CubeTurn.Clockwise, pivot);
+                .Rotate(CubeOperation.R, pivot)
+                .Rotate(CubeOperation.R, pivot)
+                .Rotate(CubeOperation.R, pivot)
+                .Rotate(CubeOperation.R, pivot);
 
             Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(2, 0, 0)), "4回転後に元の座標へ戻ること");
             Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(2, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
@@ -165,7 +184,7 @@ namespace Domain.Tests
             {
                 [new BlockPosition(3, 3, 3)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.X, CubeTurn.Clockwise, 2f, 0.5f, 0.5f);
+            var rotated = Rotate(blocks, CubeOperation.R, 2f, 0.5f, 0.5f);
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(3, -2, 3)), "実測値: (3,3,3)→(3,-2,3)");
         }
@@ -183,7 +202,7 @@ namespace Domain.Tests
                 [new BlockPosition(0, 1, 0)] = CreateStandardBlock(),
                 [new BlockPosition(1, 1, 0)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.Y, CubeTurn.Clockwise, 0.5f, 0f, 0.5f);
+            var rotated = Rotate(blocks, CubeOperation.U, 0.5f, 0f, 0.5f);
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 1, 1)), "(0,1,0)→(0,1,1)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 1, 0)), "(1,1,0)→(0,1,0)");
@@ -203,10 +222,10 @@ namespace Domain.Tests
             var pivot = new Domain.Cube.PivotPosition(0.5f, 0f, 0.5f);
 
             var result = cube
-                .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Y, CubeTurn.Clockwise, pivot);
+                .Rotate(CubeOperation.U, pivot)
+                .Rotate(CubeOperation.U, pivot)
+                .Rotate(CubeOperation.U, pivot)
+                .Rotate(CubeOperation.U, pivot);
 
             Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(0, 1, 0)), "4回転後に元の座標へ戻ること");
             Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(0, 1, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
@@ -226,7 +245,7 @@ namespace Domain.Tests
                 [new BlockPosition(0, 0, 0)] = CreateStandardBlock(),
                 [new BlockPosition(1, 0, 0)] = CreateStandardBlock(),
             };
-            var rotated = Rotate(blocks, RotateAxis.Z, CubeTurn.Clockwise, 0.5f, 0.5f, 0.5f);
+            var rotated = Rotate(blocks, CubeOperation.F, 0.5f, 0.5f, 0.5f);
 
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 1, 0)), "(0,0,0)→(0,1,0)");
             Assert.IsTrue(rotated.ContainsKey(new BlockPosition(0, 0, 0)), "(1,0,0)→(0,0,0)");
@@ -247,10 +266,10 @@ namespace Domain.Tests
             var pivot = new Domain.Cube.PivotPosition(0.5f, 0.5f, 0.5f);
 
             var result = cube
-                .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot)
-                .Rotate(RotateAxis.Z, CubeTurn.Clockwise, pivot);
+                .Rotate(CubeOperation.F, pivot)
+                .Rotate(CubeOperation.F, pivot)
+                .Rotate(CubeOperation.F, pivot)
+                .Rotate(CubeOperation.F, pivot);
 
             Assert.IsTrue(result.Blocks.ContainsKey(new BlockPosition(0, 0, 0)), "4回転後に元の座標へ戻ること");
             Assert.AreEqual(BlockColor.Green, result.Blocks[new BlockPosition(0, 0, 0)].GetColor(BlockFace.Front), "4回転後に面の色が元に戻ること");
@@ -267,11 +286,11 @@ namespace Domain.Tests
             var blocksB = new Dictionary<BlockPosition, Domain.Cube.Block> { [new BlockPosition(3, 3, 3)] = CreateStandardBlock() };
 
             // 境界: Block.X > 2 で (3,3,3) が対象。Pivot(2, 0.5, 0.5) → (3,-2,3)
-            var rotatedA = Rotate(blocksA, RotateAxis.X, CubeTurn.Clockwise, 2f, 0.5f, 0.5f);
+            var rotatedA = Rotate(blocksA, CubeOperation.R, 2f, 0.5f, 0.5f);
             Assert.IsTrue(rotatedA.ContainsKey(new BlockPosition(3, -2, 3)), "Pivot(2,0.5,0.5) → (3,-2,3)");
 
             // Pivot(2, 1.5, 1.5) → (3,0,3)
-            var rotatedB = Rotate(blocksB, RotateAxis.X, CubeTurn.Clockwise, 2f, 1.5f, 1.5f);
+            var rotatedB = Rotate(blocksB, CubeOperation.R, 2f, 1.5f, 1.5f);
             Assert.IsTrue(rotatedB.ContainsKey(new BlockPosition(3, 0, 3)), "Pivot(2,1.5,1.5) → (3,0,3)");
         }
 
@@ -281,13 +300,12 @@ namespace Domain.Tests
 
         private static IReadOnlyDictionary<BlockPosition, IBlock> Rotate(
             Dictionary<BlockPosition, Domain.Cube.Block> blocks,
-            RotateAxis axis,
-            CubeTurn turn,
+            CubeOperation op,
             float px, float py, float pz)
         {
             var cube  = MakeCube(blocks);
             var pivot = new Domain.Cube.PivotPosition(px, py, pz);
-            return cube.Rotate(axis, turn, pivot).Blocks;
+            return cube.Rotate(op, pivot).Blocks;
         }
 
         private static Domain.Cube.Cube MakeCube(Dictionary<BlockPosition, Domain.Cube.Block> blocks)

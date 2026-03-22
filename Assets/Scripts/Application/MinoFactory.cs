@@ -16,7 +16,7 @@ namespace Application
 
         private static readonly PivotPosition PivotI = new PivotPosition(1.5f, 0.5f, 0.5f);
         private static readonly PivotPosition PivotO = new PivotPosition(0.5f, 0.5f, 0.5f);
-        private static readonly PivotPosition PivotTetrominoStandard = new PivotPosition(1f, 0.5f, 0.5f);
+        private static readonly PivotPosition PivotTetrominoStandard = new PivotPosition(1.0f, 0.5f, 0.5f);
 
         public static ActiveMino Create(MinoType type)
         {
