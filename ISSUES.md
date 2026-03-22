@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-21（Task 029 ClearingState 実装完了）
+最終更新: 2026-03-22（Task 032 CubeUIController 実装完了）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -33,6 +33,10 @@
 | 027 | FallingState の実装 | ✅ |
 | 028 | LockDownState の実装 | ✅ |
 | 029 | ClearingState の実装 | ✅ |
+| 030 | FieldUIView の実装 | ✅ |
+| 031 | FieldUIView の動作確認 | 未着手 |
+| 032 | CubeUIController の実装 | ✅ |
+| 033 | CubeUIController の動作確認 | 未着手 |
 
 ---
 
@@ -412,10 +416,62 @@
     - `UnityEngine` に依存しない純粋な C# であること
 - **参照仕様**: `Docs/Application/Application_GamePhaseState.md`
 
+## [Task 030] FieldUIView の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: フィールドエリアの平面表示を担う View コンポーネント。`Docs/Presentation/Views/Gameplay/Presentation_Views_FieldUIView.md` に基づく。
+- **実装対象**:
+    - `FieldUIView`: `MonoBehaviour`。`BlockUIView` のプールを持ち、`GameState` 変化時にフィールド全体を再描画する
+    - フィールド用プール（最大200個）と ActiveMino 用プール（最大4個）を `Awake` 時に事前生成する
+    - `Refresh(GameState)`: Field の z=0 セルと ActiveMino の z=0 セルをプールから取り出して配置する
+    - `DomainToWorld(CubePosition)`: `pos.X * _cellSize`, `pos.Y * _cellSize`, `0f` でワールド座標に変換する
+    - `Initialize(GameStateMachine)` で `GameStateObservable` を R3 で購読し、`Refresh` を呼ぶ。`IsGameOver` 時は購読解除
+- **配置**: `Assets/Scripts/Presentation/Views/Gameplay/FieldUIView.cs`
+- **完了条件**:
+    - フィールドのブロックが z=0 のみ平面表示されること
+    - ActiveMino が落下に応じてリアルタイムで更新されること
+    - ゲームオーバー時に描画が止まること
+- **参照仕様**: `Docs/Presentation/Views/Gameplay/Presentation_Views_FieldUIView.md`
+
+## [Task 031] FieldUIView の動作確認 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `FieldUIView` を Unity シーンに配置し、ゲームループと接続して動作確認する。
+- **確認内容**:
+    - ミノがスポーンして落下する様子が画面に表示されること
+    - ロック後にブロックがフィールドに残ること
+    - ゲームオーバー時に `IsGameOver` が `true` になり描画が止まること
+- **完了条件**: Unity エディタの Play モードで上記が目視確認できること
+
+## [Task 032] CubeUIController の実装 [x]
+- **ステータス**: 完了 ✅
+- **優先度**: 高
+- **概要**: `GameStateMachine` と `CubeUIView` を接続し、ActiveMino のスポーン時に `Build` を呼び、回転入力を `RotateMinoUseCase` → `CubeUIView.RotateAsync` → `Refresh` の順で処理する `MonoBehaviour`。
+- **実装対象**:
+    - `CubeUIController`: `MonoBehaviour`
+    - `Initialize(GameStateMachine)`: `GameStateObservable` を購読し、`ActiveMino` が切り替わったとき（前回と異なる `MinoType` またはスポーン直後）に `CubeUIView.Build(activeMino.BlockGroup)` を呼ぶ
+    - `ExecuteRotate(RotateAxis, CubeTurn)`: `RotateMinoUseCase.Execute` → `CubeUIView.RotateAsync` → `Cube.GetPositionMap` → `Cube.Rotate` → `CubeUIView.Refresh` の順で処理する
+    - `OnDestroy` で購読を解除する
+- **配置**: `Assets/Scripts/Presentation/Views/Gameplay/CubeUIController.cs`
+- **完了条件**:
+    - スポーン時に `CubeUIView` にミノが表示されること
+    - `ExecuteRotate` 呼び出しで回転アニメーションが再生されること
+    - `UnityEngine` 以外の依存は Application・Domain 層のインターフェース経由であること
+
+## [Task 033] CubeUIController の動作確認 [ ]
+- **ステータス**: 未着手
+- **優先度**: 高
+- **概要**: `CubeUIController` を Unity シーンに配置し、キューブエリアとフィールドエリアが同期して動作することを確認する。
+- **確認内容**:
+    - スポーン時にキューブエリアにミノが表示されること
+    - フィールドエリアの落下中ミノと同じ `ActiveMino` が表示されていること
+    - ゲームオーバー時に両エリアの描画が止まること
+- **完了条件**: Unity エディタの Play モードで上記が目視確認できること
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 030以降: Presentation層の実装（View・InputDetector）
+- Task 034以降: InputDetector の実装（KeyboardInputDetector / CubeInputDetector / GamepadInputDetector）
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化
 - ドキュメントパスの整理（Docs/Domains/ と Docs/ の混在）

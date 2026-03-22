@@ -38,5 +38,11 @@ namespace Application
             _currentState = new SpawningState(new Random());
             _gameState.Value = GameState.Initial;
         }
+
+        // 外部からユースケース結果を GameState に反映する（回転操作など）
+        public void ApplyGameState(GameState newGameState)
+        {
+            _gameState.Value = newGameState ?? throw new ArgumentNullException(nameof(newGameState));
+        }
     }
 }
