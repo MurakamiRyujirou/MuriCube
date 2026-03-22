@@ -1,0 +1,16 @@
+{
+    "name": "Presentation.CubeOperationExtensions",
+    "rootNamespace": "Presentation",
+    "references": [
+        "Domain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
