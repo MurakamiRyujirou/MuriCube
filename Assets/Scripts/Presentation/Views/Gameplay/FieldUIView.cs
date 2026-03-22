@@ -108,17 +108,16 @@ namespace Presentation.Views.Gameplay
             foreach (var kv in mino.BlockGroup.Blocks)
             {
                 var local = kv.Key;
-                var absX = offset.X + (int)Math.Round(local.X, MidpointRounding.AwayFromZero);
-                var absY = offset.Y + (int)Math.Round(local.Y, MidpointRounding.AwayFromZero);
-                var absZ = offset.Z + (int)Math.Round(local.Z, MidpointRounding.AwayFromZero);
-                if (absZ != Field.MinZ)
+                var absX = offset.X + local.X;
+                var absY = offset.Y + local.Y;
+                var absZ = offset.Z + local.Z;
+                if (absZ > 0.5f)
                     continue;
                 if (activeIndex >= ActiveMinoPoolSize)
                     break;
 
-                var cubePos = new CubePosition(absX, absY, absZ);
                 var cell = _activeMinoPool[activeIndex++];
-                cell.transform.position = DomainToWorld(cubePos);
+                cell.transform.position = new Vector3(absX * _cellSize, absY * _cellSize, 0f);
                 cell.UpdateView(kv.Value);
                 cell.gameObject.SetActive(true);
             }
