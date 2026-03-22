@@ -13,6 +13,7 @@ namespace Presentation.GameLoopDebug
     {
         [SerializeField] private float _timeScale = 1f;
         [SerializeField] private FieldUIView _fieldUIView;
+        [SerializeField] private ScoreUIView _scoreUIView;
         [SerializeField] private CubeUIController _cubeUIController;
         [SerializeField] private KeyboardInputDetector _keyboardInputDetector;
         [SerializeField] private GamepadInputDetector _gamepadInputDetector;
@@ -30,6 +31,8 @@ namespace Presentation.GameLoopDebug
 
             if (_fieldUIView != null)
                 _fieldUIView.Initialize(_stateMachine);
+
+            _scoreUIView?.Initialize(_stateMachine);
 
             _cubeUIController?.Initialize(_stateMachine);
 
