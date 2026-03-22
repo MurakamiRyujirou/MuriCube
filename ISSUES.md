@@ -188,7 +188,7 @@
 - **テストケース**:
     - `Create_ReturnsCorrectMinoType`: 7種すべてについて `MinoFactory.Create(type).MinoType == type` であること
     - `Create_HasTwoLayers`: 7種すべてについて生成された `IBlockGroup.Blocks` のキーに z=0 と z=1 の両方が含まれること
-    - `Create_PivotIsCorrect`: I は `(1.5, 0.5, 0.5)`、O は `(0.5, 0.5, 0.5)`、T/S/Z/J/L は `(1.0, 0.5, 0.5)` であること
+    - `Create_PivotIsCorrect`: I は `(1.5, 0.5, 0.5)`、O は `(0.5, 0.5, 0.5)`、T/S/Z/J/L は `(1.5, 0.5, 0.5)` であること
     - `Create_OffsetIsZero`: 7種すべてについてオフセットが `(0, 0, 0)` であること
     - `Create_AllTypes_NoException`: 7種すべてで例外が発生しないこと
 - **完了条件**: `MinoFactoryTest` が NUnit でオールグリーンであること
