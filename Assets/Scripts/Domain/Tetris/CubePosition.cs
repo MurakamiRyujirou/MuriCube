@@ -22,6 +22,8 @@ namespace Domain.Tetris
 
         public override int GetHashCode() => (X, Y, Z).GetHashCode();
 
+        public override string ToString() => $"({X}, {Y}, {Z})";
+
         public static bool operator ==(CubePosition left, CubePosition right) => left.Equals(right);
 
         public static bool operator !=(CubePosition left, CubePosition right) => !left.Equals(right);

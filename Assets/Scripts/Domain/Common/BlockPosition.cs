@@ -22,6 +22,8 @@ namespace Domain.Common
 
         public override int GetHashCode() => (X, Y, Z).GetHashCode();
 
+        public override string ToString() => $"({X}, {Y}, {Z})";
+
         public static bool operator ==(BlockPosition left, BlockPosition right) => left.Equals(right);
 
         public static bool operator !=(BlockPosition left, BlockPosition right) => !left.Equals(right);

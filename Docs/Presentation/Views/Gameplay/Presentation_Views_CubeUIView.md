@@ -9,7 +9,7 @@
 ## 2. 参照ドキュメント
 
 - **回転ロジックの正解**: `Docs/Domains/Domain_Cube.md`（公転・自転、Pivot、軸ごとの対象ブロック抽出ルール）
-- **個別ブロック表示**: `Docs/Presentation/Views/Presentation_Views_BlockUIView.md`（色反映・UpdateView）
+- **個別ブロック表示**: `Docs/Presentation/Views/Gameplay/Presentation_Views_BlockUIView.md`（色反映・UpdateView）
 
 ## 3. 責務
 
