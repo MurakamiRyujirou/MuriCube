@@ -1,3 +1,4 @@
+using Domain.Tetris;
 using UnityEngine;
 
 namespace Presentation.Views.Gameplay
@@ -15,14 +16,15 @@ namespace Presentation.Views.Gameplay
 
             var s = _cellSize;
 
-            for (var y = 0; y < 20; y++)
-                PlaceBlock(-1, y, 0, s);
+            for (var y = Field.MinY; y <= Field.MaxY; y++)
+                PlaceBlock(Field.MinX - 1, y, 0, s);
 
-            for (var y = 0; y < 20; y++)
-                PlaceBlock(10, y, 0, s);
+            for (var y = Field.MinY; y <= Field.MaxY; y++)
+                PlaceBlock(Field.MaxX + 1, y, 0, s);
 
-            for (var x = 0; x < 10; x++)
-                PlaceBlock(x, -1, 0, s);
+            // 下壁: X=-1〜10（左右の角を含む）
+            for (var x = Field.MinX - 1; x <= Field.MaxX + 1; x++)
+                PlaceBlock(x, Field.MinY - 1, 0, s);
         }
 
         private void PlaceBlock(int gridX, int gridY, int gridZ, float cellScale)
