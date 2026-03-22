@@ -28,14 +28,30 @@ namespace Presentation.InputDetectors
 
         private GameStateMachine _stateMachine;
         private bool _isCounterClockwiseModifierActive;
+        private bool _inputSubscribed;
 
         public void Initialize(GameStateMachine stateMachine)
         {
             _stateMachine = stateMachine ?? throw new ArgumentNullException(nameof(stateMachine));
+            SubscribeInputActions();
         }
 
         private void OnEnable()
         {
+            SubscribeInputActions();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeInputActions();
+        }
+
+        private void SubscribeInputActions()
+        {
+            if (_inputSubscribed || _stateMachine == null)
+                return;
+
+            _inputSubscribed = true;
             EnableAndSubscribe(_rotateUAction, OnRotateUPerformed);
             EnableAndSubscribe(_rotateRAction, OnRotateRPerformed);
             EnableAndSubscribe(_rotateFAction, OnRotateFPerformed);
@@ -52,8 +68,12 @@ namespace Presentation.InputDetectors
             EnableAndSubscribe(_hardDropAction, OnHardDropPerformed);
         }
 
-        private void OnDisable()
+        private void UnsubscribeInputActions()
         {
+            if (!_inputSubscribed)
+                return;
+
+            _inputSubscribed = false;
             DisableAndUnsubscribe(_rotateUAction, OnRotateUPerformed);
             DisableAndUnsubscribe(_rotateRAction, OnRotateRPerformed);
             DisableAndUnsubscribe(_rotateFAction, OnRotateFPerformed);
@@ -155,11 +175,11 @@ namespace Presentation.InputDetectors
             _stateMachine.ApplyGameState(next);
         }
 
-        // IsGameOver 時は false。_stateMachine が未設定なら MissingReferenceException
+        // IsGameOver 時は false。購読前はコールバックが来ない想定だが念のため false
         private bool TryConsumeGameplayInput()
         {
             if (_stateMachine == null)
-                throw new MissingReferenceException($"{nameof(KeyboardInputDetector)}: {nameof(_stateMachine)} is not assigned.");
+                return false;
 
             if (_stateMachine.GameStateObservable.CurrentValue.IsGameOver)
                 return false;

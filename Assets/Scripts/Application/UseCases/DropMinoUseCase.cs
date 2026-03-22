@@ -33,8 +33,14 @@ namespace Application.UseCases
             var current = mino;
             var field = gameState.Field;
 
+            var maxIterations = Field.MaxY - Field.MinY + 10;
+            var iterations = 0;
+
             while (true)
             {
+                if (++iterations > maxIterations)
+                    break;
+
                 var offset = current.Offset;
                 var nextOffset = new CubePosition(offset.X, offset.Y - 1, offset.Z);
                 var next = current.WithOffset(nextOffset);

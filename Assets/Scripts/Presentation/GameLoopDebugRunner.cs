@@ -52,14 +52,14 @@ namespace Presentation.GameLoopDebug
             var currentPhase = _stateMachine.CurrentPhase;
             if (currentPhase != _lastPhase)
             {
-                UnityEngine.Debug.Log($"[GameLoop] Phase: {_lastPhase} → {currentPhase}");
+                // UnityEngine.Debug.Log($"[GameLoop] Phase: {_lastPhase} → {currentPhase}");
                 _lastPhase = currentPhase;
             }
 
-            if (state.ActiveMino != null)
-                UnityEngine.Debug.Log($"[GameLoop] ActiveMino: {state.ActiveMino.MinoType} offset={state.ActiveMino.Offset} fieldBlocks={state.Field.Blocks.Count}");
+            // if (state.ActiveMino != null)
+            //     UnityEngine.Debug.Log($"[GameLoop] ActiveMino: {state.ActiveMino.MinoType} offset={state.ActiveMino.Offset} fieldBlocks={state.Field.Blocks.Count}");
 
-            UnityEngine.Debug.Log($"[GameLoop] Score={state.Score} Level={state.Level} Lines={state.ClearedLineCount}");
+            // UnityEngine.Debug.Log($"[GameLoop] Score={state.Score} Level={state.Level} Lines={state.ClearedLineCount}");
 
             if (state.IsGameOver)
                 UnityEngine.Debug.Log("[GameLoop] GameOver");
