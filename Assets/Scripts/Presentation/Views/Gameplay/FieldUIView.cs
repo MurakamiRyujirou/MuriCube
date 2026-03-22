@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Presentation.Views.Gameplay
 {
-    // GameState を購読し Field / ActiveMino の z=0 を平面表示する（Presentation_Views_FieldUIView.md）
+    // GameState を購読し Field / ActiveMino の手前側（絶対 Z 最小）の層を平面表示する（Presentation_Views_FieldUIView.md）
     public sealed class FieldUIView : MonoBehaviour
     {
         private const int FieldPoolSize = 200;
@@ -104,6 +104,25 @@ namespace Presentation.Views.Gameplay
                 return;
 
             var offset = mino.Offset;
+
+            // ミノ内で最も手前のZ絶対座標を求める
+            var minAbsZ = float.MaxValue;
+            foreach (var kv in mino.BlockGroup.Blocks)
+            {
+                var absZ = offset.Z + kv.Key.Z;
+                if (absZ < minAbsZ)
+                    minAbsZ = absZ;
+            }
+
+            // offset と全セルの absZ を出力
+            UnityEngine.Debug.Log($"[FieldUIView] offset={mino.Offset} minAbsZ={minAbsZ}");
+            foreach (var kv in mino.BlockGroup.Blocks)
+            {
+                var absZ = mino.Offset.Z + kv.Key.Z;
+                UnityEngine.Debug.Log($"[FieldUIView] local={kv.Key} absZ={absZ} pass={Mathf.Abs(absZ - minAbsZ) <= 0.01f}");
+            }
+
+            // 最も手前のZ層のセルのみ表示する
             var activeIndex = 0;
             foreach (var kv in mino.BlockGroup.Blocks)
             {
@@ -111,7 +130,7 @@ namespace Presentation.Views.Gameplay
                 var absX = offset.X + local.X;
                 var absY = offset.Y + local.Y;
                 var absZ = offset.Z + local.Z;
-                if (absZ > 0.5f)
+                if (Mathf.Abs(absZ - minAbsZ) > 0.01f)
                     continue;
                 if (activeIndex >= ActiveMinoPoolSize)
                     break;
@@ -121,6 +140,9 @@ namespace Presentation.Views.Gameplay
                 cell.UpdateView(kv.Value);
                 cell.gameObject.SetActive(true);
             }
+
+            // 表示したセル数を出力
+            UnityEngine.Debug.Log($"[FieldUIView] activeIndex={activeIndex} (表示セル数)");
         }
 
         private Vector3 DomainToWorld(CubePosition pos) =>
