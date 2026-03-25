@@ -18,6 +18,10 @@ Unity や Presentation 層との直接依存を持たず、入出力は純粋な
 - Presentation 層は `GameStateMachine.GameStateObservable` を R3 で購読し、View に反映する。
 - Application 層は Presentation 層を直接参照しない。
 
+### 2.1 回転操作と Presentation の適用順
+
+回転は `RotateMinoUseCase` が `IsColliding` により**採択／却下**を決める。Presentation の `CubeUIController` は、この判定を **`CubeUIView` の回転アニメーションより前**に行い、却下時はビューを進めない。そうしないと見た目だけが進み、`GameState` と不整合になる（スクランブル再生も同一経路）。設計の詳細は `Docs/Presentation/Views/Gameplay/Gameplay/Presentation_Views_CubeUIController.md` §4.2・§8 を参照。
+
 ## 3. フォルダ構成
 
 ```

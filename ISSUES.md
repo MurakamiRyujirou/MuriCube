@@ -1,6 +1,6 @@
 # MuriCube Development Issues
 
-最終更新: 2026-03-22（Task 045 実装完了）
+最終更新: 2026-03-23（Task 047 実装・動作確認完了）
 
 | Task | 題目 | 状態 |
 |------|------|------|
@@ -49,6 +49,7 @@
 | 044 | スコア・レベル表示の動作確認 | 未着手 |
 | 045 | テトリス操作ボタンの実装 | ✅ |
 | 046 | テトリス操作ボタンの動作確認 | 未着手 |
+| 047 | CubeUIController 回転のドメイン先行（ExecuteRotateCoreAsync） | ✅ |
 
 ---
 
@@ -654,11 +655,31 @@
     - スクランブル中に操作が無効になること
 - **完了条件**: Unity エディタおよびスマホで上記が目視確認できること
 
+## [Task 047] CubeUIController 回転のドメイン先行（ExecuteRotateCoreAsync） [x]
+- **ステータス**: 完了 ✅（Unity エディタで動作確認済み）
+- **優先度**: 高
+- **概要**: `ExecuteRotateCoreAsync` で **`RotateMinoUseCase.Execute` をアニメーションより先**に実行し、フィールド衝突で回転がキャンセルされる場合は **`RotateAsync` / `Refresh` / `ApplyGameState` を行わず**早期リターンする。成功時のみ従来どおりアニメ → `Refresh` → `ApplyGameState(newGameState)` する。
+- **背景・意図**:
+    - 変更前は「アニメ → `Refresh`（ビューを回転後形状へ）→ `RotateMinoUseCase`」の順のため、**キャンセル時も見た目だけが進み**、`GameState` 上の `ActiveMino` と `CubeUIView` がずれる。
+    - スクランブル再生（`PlayScramblingAsync`）でも同一経路を通るため、**手順の一部が `IsColliding` で弾かれた**ときに巻き戻しのような表示や、完了後の `Build` との不整合が起こりうる。
+    - **キャンセル判定**は、`RotateMinoUseCase` が衝突時に **引数の `GameState` と同一参照**を返す契約に基づき、`ReferenceEquals(newGameState, current)` で行う（`current` は `Execute` に渡したスナップショット）。
+- **実装対象**:
+    - `Assets/Scripts/Presentation/Views/Gameplay/CubeUIController.cs` の `ExecuteRotateCoreAsync`
+- **参照ドキュメント**:
+    - `Docs/Presentation/Views/Gameplay/Gameplay/Presentation_Views_CubeUIController.md`（§4.2・実行順序の意図）
+    - `Docs/Application/UseCases/UseCase_RotateMino.md` §6（Presentation 連携）
+- **完了条件**:
+    - 上記の処理順がソースに反映されていること
+    - 衝突キャンセル時にアニメおよび `Refresh` が実行されないこと
+    - 採択時のみ `GameState` が更新され、`FieldUIView` 等の購読と整合すること
+    - スクランブル後・壁際回転を含め、Unity エディタで見た目と操作感が破綻しないこと（目視確認）
+- **検証メモ**: 2026-03-23 Unity エディタにて動作確認済み。
+
 ---
 
 ## 進行メモ（未イシュー化の候補）
 
-- Task 047以降: ゲームオーバー画面・リスタート機能
+- Task 048以降: ゲームオーバー画面・リスタート機能
 - ActiveMino落下中の表示欠け修正（1セル欠けるケースあり）
 - HardDrop無限ループの根本修正
 - TechSpecs `BlockColor.Empty` の要否と `IBlock` 仕様の一本化

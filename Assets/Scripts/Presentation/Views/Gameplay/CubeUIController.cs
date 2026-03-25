@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Presentation.Views.Gameplay
 {
-    // GameStateMachine と CubeUIView を接続し、スポーン時に Build、回転時にアニメ→Refresh→ユースケース反映を行う
+    // GameStateMachine と CubeUIView を接続し、スポーン時に Build、回転時にユースケース採否→アニメ→Refresh→ApplyGameState を行う
     public sealed class CubeUIController : MonoBehaviour
     {
         [SerializeField] private CubeUIView _cubeUIView;
@@ -52,12 +52,17 @@ namespace Presentation.Views.Gameplay
             if (_cubeUIView.IsRotating)
                 return;
 
-            var activeMino = _stateMachine.GameStateObservable.CurrentValue.ActiveMino;
+            var current = _stateMachine.GameStateObservable.CurrentValue;
+            var activeMino = current.ActiveMino;
             if (activeMino == null)
                 return;
 
             var cube = new Cube(new BlockGroup(activeMino.BlockGroup.Blocks));
             if (!cube.CanRotate(operation, activeMino.Pivot))
+                return;
+
+            var newGameState = RotateMinoUseCase.Execute(current, operation);
+            if (ReferenceEquals(newGameState, current))
                 return;
 
             var (axis, turn) = CubeOperationRotation.ToAxisAndTurn(operation);
@@ -69,7 +74,6 @@ namespace Presentation.Views.Gameplay
             var rotatedCube = cube.Rotate(operation, activeMino.Pivot);
             _cubeUIView.Refresh(rotatedCube, positionMap);
 
-            var newGameState = RotateMinoUseCase.Execute(_stateMachine.GameStateObservable.CurrentValue, operation);
             _lastActiveMinoRef = newGameState.ActiveMino;
             _stateMachine.ApplyGameState(newGameState);
         }

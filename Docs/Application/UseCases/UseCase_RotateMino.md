@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-`RotateMinoUseCase` はプレイヤー入力を受け取り、`ActiveMino` を指定の軸・方向で90度回転する。
+`RotateMinoUseCase` はプレイヤー入力を受け取り、`ActiveMino` を指定の `CubeOperation` で 90 度回転する。
 回転後に衝突が発生する場合は元の `GameState` をそのまま返す（回転キャンセル）。
 
 ## 2. 配置
@@ -18,9 +18,9 @@
 ```csharp
 public static class RotateMinoUseCase
 {
-    // ActiveMino を指定の軸・方向で 90度回転する。
-    // ActiveMino が null または回転後に衝突する場合は元の GameState を返す。
-    public static GameState Execute(GameState gameState, RotateAxis axis, CubeTurn turn);
+    // ActiveMino を指定の CubeOperation で 90度回転する。
+    // ActiveMino が null または回転後に衝突する場合は元の GameState をそのまま返す（同一参照）。
+    public static GameState Execute(GameState gameState, CubeOperation op);
 }
 ```
 
@@ -29,7 +29,7 @@ public static class RotateMinoUseCase
 ```
 1. gameState.ActiveMino が null なら gameState をそのまま返す
 2. ActiveMino.BlockGroup を Cube に変換する
-3. Cube.Rotate(axis, turn, ActiveMino.Pivot) で回転後の Cube を得る
+3. Cube.Rotate(op, ActiveMino.Pivot) で回転後の Cube を得る
 4. ActiveMino.WithBlockGroup(rotatedCube) で回転後の ActiveMino を生成する
 5. rotatedMino.IsColliding(gameState.Field) で衝突判定する
 6a. 衝突あり → gameState をそのまま返す（回転キャンセル）
@@ -66,11 +66,15 @@ var cube = new Cube(new BlockGroup(mino.BlockGroup.Blocks));
 | B 回転 | Z | CounterClockwise |
 | B' 回転 | Z | Clockwise |
 
-この変換は Presentation 層の InputDetector が担い、`RotateMinoUseCase` は `RotateAxis` と `CubeTurn` のみを受け取る。
+この変換は Presentation 層の InputDetector が担い、最終的には `CubeOperation` として `CubeUIController.ExecuteRotateAsync` に渡す。`RotateMinoUseCase` 自体は **`CubeOperation` を受け取る**。
+
+### 6.1 CubeUIController での適用順（ドメイン先行）
+
+Presentation では、`RotateMinoUseCase.Execute` を **`CubeUIView.RotateAsync` より前**に呼ぶ。衝突などで回転が却下された場合（戻り値が**入力 `GameState` と同一参照**のとき）は、アニメーションと `Refresh` を行わず `ApplyGameState` も不要とする。採択時のみアニメ → `Refresh` → `ApplyGameState(newGameState)`。理由・手順・参照一致によるキャンセル判定は `Docs/Presentation/Views/Gameplay/Gameplay/Presentation_Views_CubeUIController.md` §4.2・§8 を参照。実装タスクは `ISSUES.md` [Task 047]。
 
 ## 7. 設計指針
 
 - **純粋関数**: 引数の `GameState` を変更せず、新しい `GameState` を返す。
 - **UnityEngine 非依存**: 純粋な C# とする。
-- **`CanRotate` は使用しない**: ミノ内部のブロック同士の重なりは現状の形状定義では発生しない。フィールドとの衝突判定（`IsColliding`）のみで十分。
+- **Presentation の `CanRotate` との役割分担**: ユースケース本体は `IsColliding` のみで採否する。`CubeUIController` はアニメ前に `Cube.CanRotate` で**内部オーバーラップ**を弾く（§6.1・`Presentation_Views_CubeUIController.md`）。
 - **null安全**: `ActiveMino` が `null` の場合は早期リターンする。

@@ -123,9 +123,11 @@ GameState が変化したとき:
 
 ```
 1. ScramblingMoves を順番にイテレートする
-2. 各 ScramblingMove を ExecuteRotateAsync(axis, turn) で再生する（0.15秒/回）
-3. 全回転完了後に gameState with { ScramblingMoves = [] } を ApplyGameState する
+2. 各 ScramblingMove を ExecuteRotateAsync(operation, durationOverride) で再生する（スクランブル用は 0.15 秒/回）
+3. 貯めた手順をすべて処理したあと、gameState with { ScramblingMoves = [] } を ApplyGameState する
 ```
+
+**回転1回あたりの適用順**は `CubeUIController.ExecuteRotateCoreAsync` に従う。**`RotateMinoUseCase`（ドメイン採否）をアニメより先**に実行し、フィールド衝突で却下された手順では**その回はアニメ・Refresh を行わない**。意図と手順は `Docs/Presentation/Views/Gameplay/Gameplay/Presentation_Views_CubeUIController.md` §4.2・§8、`ISSUES.md` [Task 047] を参照。
 
 ## 9. スクランブル中の入力無効
 
