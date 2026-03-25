@@ -12,10 +12,12 @@
 
 ### IGamePhaseState
 
-| 項目 | 値 |
-|------|-----|
-| ソース | `Assets/Scripts/Application/PhaseStates/IGamePhaseState.cs` |
-| 名前空間 | `Application.PhaseStates` |
+
+| 項目   | 値                                                           |
+| ---- | ----------------------------------------------------------- |
+| ソース  | `Assets/Scripts/Application/PhaseStates/IGamePhaseState.cs` |
+| 名前空間 | `Application.PhaseStates`                                   |
+
 
 ```csharp
 public interface IGamePhaseState
@@ -51,6 +53,7 @@ public enum GamePhase
 ## 3. 各フェーズの責務
 
 ### SpawningState
+
 - `MinoFactory` で新しい `ActiveMino` を生成し、`GameState.ActiveMino` にセットする。
 - 生成直後に `ActiveMino.IsColliding(field)` が `true` なら `IsGameOver = true` にして `GameOverState` へ遷移。
 - 正常生成なら即座に `FallingState` へ遷移する。
@@ -58,30 +61,36 @@ public enum GamePhase
 - `System.Random` をコンストラクタで受け取り、`SpawnMinoUseCase.Execute` に渡す。
 
 ### FallingState
+
 - 自然落下タイマーを管理し、落下間隔に達したら `DropMinoUseCase.Execute(gameState, DropType.Soft)` を呼ぶ。
 - 落下後に `GameState` が変化しなかった（接地）場合は `LockDownState` へ遷移。
 - 落下後に変化があった場合は `(this, newGameState)` を返す。
 - 落下間隔は `Level` に応じて変化する。
 
-| Level | 落下間隔 |
-|-------|---------|
-| 0 | 1.0秒 |
-| 1 | 0.9秒 |
-| 2 | 0.8秒 |
-| … | … |
-| 9以上 | 0.1秒（最小値） |
+
+| Level | 落下間隔      |
+| ----- | --------- |
+| 0     | 1.0秒      |
+| 1     | 0.9秒      |
+| 2     | 0.8秒      |
+| …     | …         |
+| 9以上   | 0.1秒（最小値） |
+
 
 ### LockDownState
+
 - 猶予時間（0.5秒）を計測する。
 - 猶予時間が切れたら `LockMinoUseCase.Execute` → `LineClearUseCase.Execute` を順に呼び `SpawningState` へ遷移。
 - 猶予時間内に移動・回転があった場合はタイマーをリセットし `FallingState` へ戻る。
 - `System.Random` を外部から受け取る（`SpawningState` に引き継ぐため）。
 
 ### ClearingState
+
 - `System.Random` をコンストラクタで受け取り、即座に `new SpawningState(random)` へ遷移する。
 - 将来アニメーション待機が必要になった場合に `deltaTime` タイマーを追加する。
 
 ### GameOverState
+
 - 終端状態。`Execute` は何もせず `(this, gameState)` を返す。
 - Presentation 層がこのフェーズを検知してゲームオーバー画面を表示する。
 
@@ -89,11 +98,13 @@ public enum GamePhase
 
 ### 配置
 
-| 項目 | 値 |
-|------|-----|
-| ソース | `Assets/Scripts/Application/GameStateMachine.cs` |
-| 名前空間 | `Application` |
-| 型 | `sealed class GameStateMachine` |
+
+| 項目   | 値                                                |
+| ---- | ------------------------------------------------ |
+| ソース  | `Assets/Scripts/Application/GameStateMachine.cs` |
+| 名前空間 | `Application`                                    |
+| 型    | `sealed class GameStateMachine`                  |
+
 
 ### 責務
 
@@ -136,3 +147,4 @@ GameController.Update(Time.deltaTime)
 - **タイマーの扱い**: `FallingState` と `LockDownState` のタイマーはフェーズクラス内のフィールドとして保持する。`Execute` の引数 `deltaTime` で更新する。
 - **UnityEngine 非依存の維持**: `IGamePhaseState` および `GameStateMachine` は `UnityEngine` を参照しない。`deltaTime` は引数で受け取る形にし、依存を外部に押し出す。
 - **拡張性**: 将来フェーズを追加する場合は `IGamePhaseState` を実装した新クラスを追加するだけでよい。
+
