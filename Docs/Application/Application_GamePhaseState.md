@@ -8,6 +8,8 @@
 
 フェーズが持つのは**ロジックのみ**。ゲームデータは `GameState` が保持する（責務の分離）。
 
+スクランブル演出（`ScramblingMoves`・`ScramblingState`）の詳細は `Application_GamePhaseState_Scrambling.md` を参照。
+
 ## 2. インターフェース定義
 
 ### IGamePhaseState
@@ -43,6 +45,7 @@ public interface IGamePhaseState
 public enum GamePhase
 {
     Spawning,
+    Scrambling,
     Falling,
     LockDown,
     Clearing,
@@ -54,11 +57,17 @@ public enum GamePhase
 
 ### SpawningState
 
-- `MinoFactory` で新しい `ActiveMino` を生成し、`GameState.ActiveMino` にセットする。
-- 生成直後に `ActiveMino.IsColliding(field)` が `true` なら `IsGameOver = true` にして `GameOverState` へ遷移。
-- 正常生成なら即座に `FallingState` へ遷移する。
+- `SpawnMinoUseCase` で新しい `ActiveMino` を生成し、`GameState.ActiveMino` と **`ScramblingMoves`**（スクランブル再生用の手順列）をセットする。
+- 生成直後に衝突する場合は `IsGameOver = true` の `GameState` を返し `GameOverState` へ遷移（`ActiveMino` は反映しない）。
+- 正常生成なら **`ScramblingState`** へ遷移する（落下はスクランブル完了後）。
 - `deltaTime` は使用しない（即時遷移のため）。
 - `System.Random` をコンストラクタで受け取り、`SpawnMinoUseCase.Execute` に渡す。
+
+### ScramblingState
+
+- `GameState.ScramblingMoves` が空になる瞬間まで **同一フェーズに留まる**（`Execute` は `(this, gameState)` を返す）。
+- 空になったら **`FallingState`** へ遷移する。
+- 演出が `ScramblingMoves` を消すのは Presentation（`CubeUIController` が再生完了後に `ApplyGameState` で空リストへ更新）。詳細は `Application_GamePhaseState_Scrambling.md`。
 
 ### FallingState
 
@@ -128,6 +137,9 @@ public sealed class GameStateMachine
 
     // ゲームを初期状態にリセットする。
     public void Reset();
+
+    // 回転・スクランブル完了など、フェーズ machine の tic 以外から GameState を反映する。
+    public void ApplyGameState(GameState newGameState);
 }
 ```
 

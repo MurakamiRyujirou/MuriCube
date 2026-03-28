@@ -18,7 +18,8 @@
 ```csharp
 public static class SpawnMinoUseCase
 {
-    // ランダムな MinoType を選択し、ランダム回転を加えてフィールド上部中央に配置する。
+    // ランダムな MinoType を選択し、スクランブル手順と最終形状を求めつつ、
+    // ActiveMino は整列形状のままスポーンし ScramblingMoves に手順を載せる。
     // 衝突が発生した場合は IsGameOver = true の GameState を返す。
     public static GameState Execute(GameState gameState, System.Random random);
 }
@@ -27,15 +28,19 @@ public static class SpawnMinoUseCase
 ## 4. 処理フロー
 
 ```
-1. MinoType をランダムに選択する（random.Next を使用）
-2. MinoFactory.Create(type) で固定配色・固定形状の ActiveMino を生成する
-3. BlockGroup を Cube に変換し、20回のランダム回転を加える
-4. 回転後の Cube を IBlockGroup として WithBlockGroup で ActiveMino に反映する
-5. スポーン位置（フィールド上部中央）のオフセットを計算し WithOffset で設定する
-6. ActiveMino.IsColliding(field) で衝突判定する
-7a. 衝突あり → gameState with { IsGameOver = true } を返す
-7b. 衝突なし → gameState with { ActiveMino = mino } を返す
+1. MinoType をランダムに選択する
+2. MinoFactory.Create(type) で整列・固定配色の ActiveMino（alignedMino）を得る
+3. その BlockGroup のコピーから Cube を構築し、最大 20 回のランダム試行で回転する
+   - 各試行で軸 X/Y/Z をランダム選択し、対応する CubeOperation（R / U / F）を決める
+   - CanRotate(op, pivot) が true のときだけ ScramblingMove(op) を列に追加し Cube.Rotate(op, pivot) を適用
+4. 得られた Cube を WithBlockGroup したミノにスポーンオフセット（§5）を適用し、衝突判定用の形状 rotatedMino を得る
+5. rotatedMino.IsColliding(field) で判定
+6a. 衝突あり → gameState with { IsGameOver = true }（ActiveMino・ScramblingMoves は変えない）
+6b. 衝突なし → alignedMino に同じオフセットだけ適用した activeAlignedAtSpawn を返す:
+        gameState with { ActiveMino = activeAlignedAtSpawn, ScramblingMoves = moves }
 ```
+
+`ActiveMino.BlockGroup` は **常に整列状態**。ユーザーが見るランダム形状は `CubeUIView` が `ScramblingMoves` を順に再生して `GameState` を更新することで一致する。詳細は `Application_GamePhaseState_Scrambling.md`。
 
 ## 5. スポーン位置
 
@@ -69,31 +74,27 @@ Tetris Guideline の「スポーンは上部付近の基準列・基準行」「
 - スポーンオフセットは **固定定数 1 組ではなく**、回転後の形状に対して上記で **毎回計算**する。
 - `MinoFactory` のオフセットは引き続き `(0,0,0)`。本ユースケースが `WithOffset` で最終位置を決める。
 
-## 6. ランダム回転
+## 6. ランダム回転と ScramblingMoves
 
 `GameDesign.md` §3.2「生成時、ランダムな軸で90度回転を複数回実行した状態で提示する」に準拠する。
 
-回転回数はWCA公式スクランブルの手数（20手）を参考に **20回** とする。
-これはルービックキューブのすべての状態が20手以内で解けるという「神の数字」に基づく値であり、
-20回の回転で十分なランダム性が確保できる。
+回転試行回数は WCA の 20 手を参考に **20 回**（必ず 20 手採用するのではなく、最大 20 回試行し `CanRotate` を通過した分だけ列に載せる）。
 
-- **回転軸**: `RotateAxis.X` / `RotateAxis.Y` / `RotateAxis.Z` からランダムに選択
-- **回転回数**: 20回（固定）
-- **回転方向**: 常に `CubeTurn.Clockwise`（回数でランダム性を確保するため方向は固定）
-- **Pivot**: `ActiveMino.Pivot` をそのまま使用する
-- **実装**: `BlockGroup` を `Cube` でラップし、`Cube.Rotate` を20回チェーンする
+- **軸のランダム化**: 各試行で `RotateAxis.X` / `Y` / `Z` を等確率で選ぶ
+- **操作の対応**: X → `CubeOperation.R`、Y → `CubeOperation.U`、Z → `CubeOperation.F`（いずれも公式記法におけるその軸の正方向「ベース」操作。逆回転はスクランブル生成では使わない）
+- **Pivot**: `alignedMino.Pivot` をそのまま使う
+- **実装**: `Cube.CanRotate(op, pivot)` / `Cube.Rotate(op, pivot)` を採用可能な手だけ繰り返す。採用された `op` は `ScramblingMove` に逐次格納する
 
 ## 7. Cube への変換
 
-`MinoFactory` が返す `ActiveMino` の `BlockGroup` は `IBlockGroup` だが、
-ランダム回転には `Cube.Rotate` が必要なため、以下の手順で変換する。
+`MinoFactory` が返す `ActiveMino` のブロック集合を **ディープコピー**した `BlockGroup` から `Cube` を作り、上記ループで変形する（元の `alignedMino` の `IBlockGroup` は汚さない）。
 
 ```csharp
-// IBlockGroup → Cube への変換
-var cube = new Cube(new BlockGroup(mino.BlockGroup.Blocks));
+var blockGroup = new BlockGroup(alignedMino.BlockGroup.Blocks);
+var cube = new Cube(blockGroup);
 ```
 
-回転後は `Cube`（`IBlockGroup` として扱える）を `WithBlockGroup` に渡す。
+衝突判定とオフセット計算には、ループ終了後の `cube` を `alignedMino.WithBlockGroup(cube)` に載せ替えたミノを用いる。返却する `ActiveMino` の `BlockGroup` は整列のままである点に注意（§4）。
 
 ## 8. 設計指針
 

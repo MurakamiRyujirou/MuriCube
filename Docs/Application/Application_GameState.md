@@ -6,7 +6,7 @@
 各ユースケースは現在の `GameState` を受け取り、変更後の新しい `GameState` を返す。
 Presentation 層は `ReactiveProperty<GameState>` を購読し、差分を View に反映する。
 
-フェーズ管理（State パターン）は `IGamePhaseState` が担う。詳細は `Application_GamePhaseState.md` を参照。
+フェーズ管理（State パターン）は `IGamePhaseState` が担う。詳細は `Application_GamePhaseState.md` を参照。`ScramblingMoves` のライフサイクルは `Application_GamePhaseState_Scrambling.md` を参照。
 
 ## 2. 配置
 
@@ -24,12 +24,15 @@ Presentation 層は `ReactiveProperty<GameState>` を購読し、差分を View 
 | プロパティ名             | 型             | 初期値           | 説明                  |
 | ------------------ | ------------- | ------------- | ------------------- |
 | `Field`            | `Field`       | `new Field()` | 接地済みブロックの配置         |
-| `ActiveMino`       | `ActiveMino?` | `null`        | 操作中のミノ。未生成時は `null` |
+| `ActiveMino`       | `ActiveMino`  | `null`        | 操作中のミノ。未生成時は `null`（NRT 無効のため型に `?` は付けない） |
 | `Score`            | `int`         | `0`           | 累積スコア               |
 | `Level`            | `int`         | `0`           | 現在レベル               |
 | `ClearedLineCount` | `int`         | `0`           | 累積消去ライン数（Level 計算用） |
 | `IsGameOver`       | `bool`        | `false`       | ゲームオーバーフラグ          |
+| `ScramblingMoves`  | `IReadOnlyList<ScramblingMove>` | 空リスト | スポーン直後のスクランブル手順。再生完了後は空に戻す |
 
+
+`ActiveMino` は C# 上は `ActiveMino` 型だが、NRT 無効のため **未生成は `null`** を渡す（`GameState.Initial` と同様）。
 
 ## 4. 初期状態
 
@@ -40,7 +43,8 @@ public static GameState Initial => new GameState(
     Score: 0,
     Level: 0,
     ClearedLineCount: 0,
-    IsGameOver: false
+    IsGameOver: false,
+    ScramblingMoves: Array.Empty<ScramblingMove>()
 );
 ```
 

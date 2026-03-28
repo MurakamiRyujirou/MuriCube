@@ -23,6 +23,12 @@
   - $2 \times 2 \times 2$：ブロックが接する点（4 ブロックの境界）が中心なので $(0.5, 0.5, 0.5)$。
   - $3 \times 3 \times 3$：中央ブロックの座標が中心なので $(1, 1, 1)$。
 
+### 2.4 CubeOperation（ルービック記法の列挙）
+- 実装: `Domain.Cube.Enums.CubeOperation`。
+- `R`, `Ri`, `L`, `Li`, `U`, `Ui`, `D`, `Di`, `F`, `Fi`, `B`, `Bi` の 12 操作。各値は **軸・対象レイヤー・90° の回転向き**を束ねたもの（WCA 風プライム表記）。
+- アプリケーション・Presentation の回転入力は原則 **この列挙をそのまま** `Cube` / `RotateMinoUseCase` に渡す。
+- 内部では `CubeOperationRotation` が `(RotateAxis axis, CubeTurn turn)` へ変換し、公転・自転の幾何（§4）に写す。
+
 ## 3. 主要エンティティ
 
 ### 3.1 Block (Value Object) : IBlock 実装
@@ -33,26 +39,29 @@
 ### 3.2 BlockGroup (Entity) : IBlockGroup 実装
 複数の `Block` の集合の管理に徹する。回転（Rotate）は持たない。
 - **データ構造**:
-    - `Dictionary<BlockPosition, Block>` : 座標とブロック実体のマッピング。
+    - 内部は `Dictionary<BlockPosition, IBlock>`。`Block` 具象だけから構築するオーバーロードコンストラクタもある。
 - **インターフェースプロパティ**:
-    - `IReadOnlyDictionary<BlockPosition, IBlock> Blocks` : 上記マッピングを IBlock として公開。
+    - `IReadOnlyDictionary<BlockPosition, IBlock> Blocks` : ブロック配置の公開。
 - **責務**: Block の集合とその配置構造の保持・公開のみ。回転ロジックは `Cube` が担当する。
 
 ### 3.3 Cube (Entity)
-`BlockGroup` を保持し、グループ全体の回転を担う。
-- **データ構造**:
-    - `BlockGroup` : ブロック集合体への参照（または保持）。
-    - `IBlockGroup BlockGroup` : 外部への読み取り専用公開。
-- **回転・問い合わせ**:
-    - `Rotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)` : 回転を実行し、新しい `Cube` を返す（不変操作）。
-    - `GetAffectedBlocks(RotateAxis axis, CubeTurn turn, PivotPosition pivot)` : 境界比較に基づき、回転対象となる `BlockPosition` の集合を返す（View の `RotateAsync` 用）。
-    - `GetPositionMap(RotateAxis axis, CubeTurn turn, PivotPosition pivot)` : **現在の** `Cube` の状態を前提に、1 手の回転を適用したあとの座標へ対応付ける「旧座標 → 新座標」マップだけを返す（回転対象外は含めない）。Presentation では **`Rotate` を呼ぶ前**のインスタンスで取得し、`Refresh` の `group` には **`Rotate` 後**の `IBlockGroup` を渡す。
-    - `CanRotate(RotateAxis axis, CubeTurn turn, PivotPosition pivot)` : 回転後の座標が、静止ブロックまたは回転対象同士と**空間上重ならない**か検証する（中心間距離が全軸で 1 未満を重なりとみなす）。
-- **回転ロジック（Rotate 内）**:
-    - **公転**: 回転軸と Pivot から定まる「回転対象レイヤー」に属するブロックのみ、`pivot` を中心として `BlockPosition` を幾何学的に置換する。対象外のブロックは位置を変えない。
-    - **自転**: 公転対象となったブロックに対して、`CubeTurn` に応じて `Block.Rotate` を複数回合成した結果で面スワップを反映する。対象外のブロックは色・向きを変えない。
-    - **Z 軸の自転と公式記法の整合**: 公転の計算は `turn` のまま行う。`RotateAxis.Z` のときだけ、**自転**に渡す向きを `InvertTurn(turn)` で入れ替える（`Clockwise` ↔ `CounterClockwise`、`HalfTurn` は据え置き）。これにより、右手座標系・Unity の前向き（+Z）とドキュメント上の「正面から見た F の Clockwise」の整合を取る。Presentation の `CubeUIView` でも Z 軸の DOTween 回転角を同趣旨で符号反転している。
-- **不変性**: `Rotate` は常に新しい `BlockGroup`（およびそれを保持する新しい `Cube`）を生成して返す。
+`BlockGroup` を保持し、グループ全体の回転を担う。`IBlockGroup` としても外部公開する。
+
+**公開 API（実装のエントリポイント）** — いずれも `CubeOperation` と `PivotPosition` を受け取る。
+
+- `Cube Rotate(CubeOperation op, PivotPosition pivot)` ：1 手分の回転を適用した新しい `Cube` を返す（不変）。`Cube.Rotate` 内で `CubeOperationRotation.ToAxisAndTurn(op)` により `RotateAxis` / `CubeTurn` を得て、以下の公転・自転を実行する。
+- `bool CanRotate(CubeOperation op, PivotPosition pivot)` ：回転後にブロックが空間上オーバーラップしないか。静止セル同士の距離は全軸で 1 未満を重なりとみなす。
+- `IReadOnlyCollection<BlockPosition> GetAffectedBlocks(CubeOperation op, PivotPosition pivot)` ：View のアニメ対象座標一覧。
+- `IReadOnlyDictionary<BlockPosition, BlockPosition> GetPositionMap(CubeOperation op, PivotPosition pivot)` ：**`Rotate` 呼び出し前**の状態から、対象ブロックの移動先マップ。Presentation の `Refresh` で新旧 `BlockPosition` を対応付ける。
+
+**補助型**: `CubeOperationRotation`（`Domain.Cube`）が、`CubeOperation` ↔ 影響ブロック判定 ↔ `(axis, turn)` の橋渡しを行う。
+
+- **回転ロジック（`Rotate` 内）**:
+    - **公転**: 軸と Pivot から定まる「回転対象レイヤー」に属するブロックのみ、`pivot` を中心として `BlockPosition` を幾何学的に置換する。対象外は不変。
+    - **自転**: 対となった各 `Block` に対し、`CubeTurn` に応じて `Block.Rotate(axis)` を合成する。`RotateAxis.Z` のときだけ自転用の `turn` を反転してから合成する（`InvertTurn`）——Z 軸の公式記法と右手座標系の整合。
+- **不変性**: `Rotate` は常に新しい `BlockGroup` を内包する新しい `Cube` を返す。
+- **備考**: 設計議論や本ドキュメント §4 の説明上は `RotateAxis` と `CubeTurn` を分解して記述するが、**コード上の正本は `CubeOperation`** である。
+
 
 ## 4. 回転の定義（直感的アルゴリズム）
 

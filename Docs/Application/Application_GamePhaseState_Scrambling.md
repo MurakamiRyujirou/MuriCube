@@ -10,7 +10,7 @@ Application 層と Presentation 層の責務を明確に分離するため、ス
 
 | クラス | 変更種別 | 内容 |
 |--------|---------|------|
-| `ScramblingMove` | 新規 | 1回転分の回転情報（RotateAxis + CubeTurn）を表す readonly struct |
+| `ScramblingMove` | 新規 | 1手分の `Domain.Cube.Enums.CubeOperation` を表す readonly struct |
 | `GameState` | 修正 | `ScramblingMoves` プロパティを追加 |
 | `SpawnMinoUseCase` | 修正 | スクランブル手順を `GameState.ScramblingMoves` に記録する |
 | `SpawningState` | 修正 | スポーン後に `ScramblingState` へ遷移する |
@@ -20,19 +20,21 @@ Application 層と Presentation 層の責務を明確に分離するため、ス
 
 ## 3. ScramblingMove
 
+`SpawnMinoUseCase` が試行した各 `Cube.Rotate` と同じ `CubeOperation` を列挙する。Presentation はこれを `CubeUIController.ExecuteRotateAsync(CubeOperation, ...)` に渡す。
+
 ```csharp
 // Assets/Scripts/Application/ScramblingMove.cs
+using Domain.Cube.Enums;
+
 namespace Application
 {
     public readonly struct ScramblingMove
     {
-        public RotateAxis Axis { get; }
-        public CubeTurn Turn { get; }
+        public CubeOperation Operation { get; }
 
-        public ScramblingMove(RotateAxis axis, CubeTurn turn)
+        public ScramblingMove(CubeOperation operation)
         {
-            Axis = axis;
-            Turn = turn;
+            Operation = operation;
         }
     }
 }
@@ -123,7 +125,7 @@ GameState が変化したとき:
 
 ```
 1. ScramblingMoves を順番にイテレートする
-2. 各 ScramblingMove を ExecuteRotateAsync(operation, durationOverride) で再生する（スクランブル用は 0.15 秒/回）
+2. 各 `ScramblingMove.Operation` を `ExecuteRotateAsync(operation, durationOverride)` で再生する（スクランブル用は 0.15 秒/回）
 3. 貯めた手順をすべて処理したあと、gameState with { ScramblingMoves = [] } を ApplyGameState する
 ```
 
@@ -131,14 +133,19 @@ GameState が変化したとき:
 
 ## 9. スクランブル中の入力無効
 
-`KeyboardInputDetector` の `TryConsumeGameplayInput` に以下を追加する。
+`ScramblingMoves.Count > 0` のあいだはゲームプレイ入力を受け付けない。実装では次が同条件を参照する。
+
+- `KeyboardInputDetector.TryConsumeGameplayInput`
+- `GamepadInputDetector`（同等のガード）
+- `CubeInputDetector`（演出中は操作不可）
+- `TetrisInputView`（移動・落下ボタン）
+
+例（キーボード側）:
 
 ```csharp
 if (_stateMachine.GameStateObservable.CurrentValue.ScramblingMoves.Count > 0)
     return false;
 ```
-
-スクランブル中（`ScramblingMoves` が空でない間）はすべての入力を無視する。
 
 ## 10. アニメーション時間
 

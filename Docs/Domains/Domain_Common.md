@@ -19,13 +19,13 @@
 ## 3. インターフェース
 
 ### 3.1 IBlock
-- **プロパティ**:
-    - `BlockColor Color(BlockFace)` : 指定した面のの色を取得する。
+- **メソッド**:
+    - `BlockColor GetColor(BlockFace face)` : 指定した面の色を返す。
 
 ### 3.2 IBlockGroup
 - **プロパティ**:
     - `IReadOnlyDictionary<BlockPosition, IBlock> Blocks { get; }` : ブロックの配置集合。
 
 ## 4. 設計指針
-- **参照の一方向性**: Domain_Cube と Domain_Tetris は本ドキュメントを参照するが、本ドメインは他を参照しない。
+- **参照の一方向性**: `Domain_Cube` は本ドキュメントのみ参照する。`Domain_Tetris` は本ドキュメントを主に参照しつつ、回転中心型として `Domain_Cube.PivotPosition` 等を参照しうる（`Domain_Cube` から `Domain_Tetris` への参照はない）。
 - **具象の隠蔽**: テトリス側は IBlockGroup を通じて操作を行い、Cube 側の内部ロジック（面のスワップ等）には依存しない。
